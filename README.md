@@ -1,50 +1,79 @@
-# React + TypeScript + Vite
+# Evolv Platform - Linear Style Redesign
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🎨 Project Redesign (Branch: `redesign/linear-style`)
 
-Currently, two official plugins are available:
+This branch contains a complete redesign of the Evolv Platform, inspired by [Linear.app](https://linear.app/homepage)'s elegant and minimalist design philosophy.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Current Status
 
-## Expanding the ESLint configuration
+- ✅ **Branch created**: `redesign/linear-style`
+- ✅ **Backup completed**: All previous work saved in `main` branch (commit `b441232`)
+- ✅ **Clean slate**: Old UI components and pages removed
+- ✅ **Minimal structure**: Ready for new implementation based on PRD
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### What's Preserved
 
-- Configure the top-level `parserOptions` property like this:
+**Configuration & Build Setup**:
+- `package.json` - All dependencies intact
+- `vite.config.ts` - Vite configuration
+- `tailwind.config.js` - Tailwind CSS setup
+- `tsconfig.json` - TypeScript configuration
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+**Core Infrastructure**:
+- `src/lib/supabase.ts` - Supabase client
+- `src/contexts/AuthContext.tsx` - Authentication context
+- `src/hooks/` - Custom React hooks
+
+**Development Tools**:
+- `.env.example` - Environment variable template
+- `.gitignore` - Git ignore rules
+
+### What's Removed
+
+All old UI implementation has been cleaned up:
+- `/src/pages/*` - All old page components
+- `/src/components/*` - All old UI components
+- `/src/services/*` - Old service layer
+- `/src/data/*` - Old data structures
+- `docs/*.md` - Old documentation
+
+### Next Steps
+
+1. **Provide PRD**: Share your detailed Product Requirements Document
+2. **Design System**: Implement Linear-inspired design system
+3. **Component Library**: Build reusable components
+4. **Pages**: Implement new pages based on PRD
+5. **Features**: Add functionality per requirements
+
+### Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm run dev
+
+# Access at http://localhost:5173
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### Branch Strategy
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- `main` - Contains the previous complete implementation
+- `redesign/linear-style` - Current redesign work (this branch)
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+To view the old implementation:
+```bash
+git checkout main
 ```
+
+To continue with redesign:
+```bash
+git checkout redesign/linear-style
+```
+
+---
+
+**Ready to build something amazing** ✨
+
+Waiting for your PRD to start the implementation.
