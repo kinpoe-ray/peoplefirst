@@ -138,7 +138,7 @@ async function callGrokCompletion(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({})) as { error?: { message?: string } };
       throw new Error(`Grok API 错误: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
@@ -149,9 +149,10 @@ async function callGrokCompletion(
     }
 
     return data.choices[0].message.content;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Grok API 调用失败:', error);
-    throw new Error(`AI 服务暂时不可用: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`AI 服务暂时不可用: ${errorMessage}`);
   }
 }
 

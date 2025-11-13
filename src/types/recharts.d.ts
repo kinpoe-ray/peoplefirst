@@ -1,15 +1,19 @@
 // Recharts库的简化TypeScript类型声明
 declare module 'recharts' {
-  import { ComponentType } from 'react';
-  
+  import { ComponentType, SVGProps } from 'react';
+
   export interface ResponsiveContainerProps {
     width?: string | number;
     height?: string | number;
     children?: React.ReactNode;
   }
 
+  export interface ChartData {
+    [key: string]: string | number | undefined;
+  }
+
   export interface ChartProps {
-    data?: any[];
+    data?: ChartData[];
     width?: number | string;
     height?: number | string;
     margin?: { top?: number; right?: number; bottom?: number; left?: number };
@@ -18,17 +22,23 @@ declare module 'recharts' {
     children?: React.ReactNode;
   }
 
+  export interface TickProps extends SVGProps<SVGTextElement> {
+    x?: number;
+    y?: number;
+    payload?: { value: string | number };
+  }
+
   export interface AxisProps {
     dataKey?: string;
-    domain?: [number, number];
+    domain?: [number, number] | ['auto' | 'dataMin' | 'dataMax', 'auto' | 'dataMin' | 'dataMax'];
     type?: 'number' | 'category';
     allowDataOverflow?: boolean;
-    tick?: boolean | ComponentType<any>;
+    tick?: boolean | ComponentType<TickProps>;
     tickCount?: number;
   }
 
   export interface LineProps {
-    type?: string;
+    type?: 'basis' | 'basisClosed' | 'basisOpen' | 'linear' | 'linearClosed' | 'natural' | 'monotoneX' | 'monotoneY' | 'monotone' | 'step' | 'stepBefore' | 'stepAfter';
     dataKey?: string;
     stroke?: string;
     strokeWidth?: number;
@@ -43,17 +53,55 @@ declare module 'recharts' {
     strokeWidth?: number;
   }
 
+  export interface PieLabelRenderProps {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    index: number;
+    name?: string;
+    value?: number;
+  }
+
   export interface PieProps {
-    cx?: string;
-    cy?: string;
-    innerRadius?: string;
-    outerRadius?: number;
-    data?: any[];
+    cx?: string | number;
+    cy?: string | number;
+    innerRadius?: string | number;
+    outerRadius?: string | number;
+    data?: ChartData[];
     dataKey?: string;
     nameKey?: string;
     fill?: string;
-    label?: boolean | ((props: any) => string);
+    label?: boolean | ((props: PieLabelRenderProps) => string | React.ReactElement);
     children?: React.ReactNode;
+  }
+
+  export interface CartesianGridProps {
+    strokeDasharray?: string;
+    stroke?: string;
+    horizontal?: boolean;
+    vertical?: boolean;
+  }
+
+  export interface TooltipProps<TValue = number, TName = string> {
+    active?: boolean;
+    payload?: Array<{
+      value: TValue;
+      name: TName;
+      dataKey?: string;
+      color?: string;
+    }>;
+    label?: string | number;
+    separator?: string;
+    formatter?: (value: TValue, name: TName) => [string | number, string];
+    labelFormatter?: (label: string | number) => React.ReactNode;
+  }
+
+  export interface CellProps {
+    fill?: string;
+    key?: string | number;
   }
 
   export const ResponsiveContainer: ComponentType<ResponsiveContainerProps>;
@@ -61,11 +109,11 @@ declare module 'recharts' {
   export const Line: ComponentType<LineProps>;
   export const XAxis: ComponentType<AxisProps>;
   export const YAxis: ComponentType<AxisProps>;
-  export const CartesianGrid: ComponentType<any>;
-  export const Tooltip: ComponentType<any>;
+  export const CartesianGrid: ComponentType<CartesianGridProps>;
+  export const Tooltip: ComponentType<TooltipProps>;
   export const BarChart: ComponentType<ChartProps>;
   export const Bar: ComponentType<BarProps>;
   export const PieChart: ComponentType<ChartProps>;
   export const Pie: ComponentType<PieProps>;
-  export const Cell: ComponentType<any>;
+  export const Cell: ComponentType<CellProps>;
 }

@@ -6,11 +6,31 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // 验证环境变量
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ 缺少 Supabase 环境变量！');
-  console.error('请确保 .env 文件包含:');
-  console.error('  - VITE_SUPABASE_URL');
-  console.error('  - VITE_SUPABASE_ANON_KEY');
-  throw new Error('Supabase configuration missing. Please check .env file.');
+  console.error('\n=================================================================');
+  console.error('❌ CRITICAL ERROR: Missing Supabase Configuration');
+  console.error('=================================================================');
+  console.error('The application cannot start without proper Supabase credentials.');
+  console.error('\nMissing environment variables:');
+  if (!supabaseUrl) {
+    console.error('  ❌ VITE_SUPABASE_URL is not set');
+  }
+  if (!supabaseAnonKey) {
+    console.error('  ❌ VITE_SUPABASE_ANON_KEY is not set');
+  }
+  console.error('\n📋 Setup Instructions:');
+  console.error('  1. Copy the template file:');
+  console.error('     cp .env.example .env');
+  console.error('\n  2. Get your Supabase credentials:');
+  console.error('     → Visit: https://supabase.com/dashboard');
+  console.error('     → Navigate to: Settings > API');
+  console.error('     → Copy: Project URL and anon/public key');
+  console.error('\n  3. Update your .env file with actual values:');
+  console.error('     VITE_SUPABASE_URL=https://xxxxx.supabase.co');
+  console.error('     VITE_SUPABASE_ANON_KEY=eyJhbGc...your-key-here');
+  console.error('\n  4. Restart your development server');
+  console.error('=================================================================\n');
+
+  throw new Error('Supabase configuration missing. Please check the console for setup instructions.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -101,7 +121,7 @@ export type AuthUser = {
     major?: string;
     graduation_year?: number;
   };
-  app_metadata?: Record<string, any>;
+  app_metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };

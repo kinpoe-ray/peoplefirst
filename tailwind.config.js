@@ -50,6 +50,30 @@ module.exports = {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))',
 				},
+				// PathFinder brand colors
+				pathBlue: {
+					DEFAULT: '#4A90E2',
+					light: '#6BA4EA',
+					dark: '#357ABD',
+				},
+				warmOrange: {
+					DEFAULT: '#FF9F43',
+					light: '#FFB266',
+					dark: '#E67E22',
+				},
+				successGreen: '#2ECC71',
+				warningRed: '#E74C3C',
+				// Linear-inspired dark theme
+				dark: {
+					bg: '#050505',
+					surface: '#0D0D0D',
+					border: '#1A1A1A',
+					text: {
+						primary: '#FFFFFF',
+						secondary: '#9CA3AF',
+						tertiary: '#6B7280',
+					},
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -1,0 +1,109 @@
+import { supabase } from '../lib/supabase';
+import { Content, CareerCategory } from '../types/pathfinder';
+
+export async function getContents(category?: CareerCategory): Promise<Content[]> {
+  let query = supabase
+    .from('contents')
+    .select(`
+      *,
+      author:users(id, username, avatar_url)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (category && category !== '全部') {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getContentById(id: string): Promise<Content> {
+  const { data, error } = await supabase
+    .from('contents')
+    .select(`
+      *,
+      author:users(id, username, avatar_url)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function incrementViewCount(id: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_content_views', {
+    content_id: id,
+  });
+
+  if (error) throw error;
+}
+
+export async function toggleFavorite(contentId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('未登录');
+
+  // 检查是否已收藏
+  const { data: existing } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('target_type', 'content')
+    .eq('target_id', contentId)
+    .single();
+
+  if (existing) {
+    // 取消收藏
+    await supabase
+      .from('favorites')
+      .delete()
+      .eq('id', existing.id);
+  } else {
+    // 添加收藏
+    await supabase
+      .from('favorites')
+      .insert({
+        user_id: user.id,
+        target_type: 'content',
+        target_id: contentId,
+      });
+  }
+}
+
+export async function getComments(contentId: string) {
+  const { data, error } = await supabase
+    .from('comments')
+    .select(`
+      *,
+      author:users(id, username, avatar_url)
+    `)
+    .eq('target_type', 'content')
+    .eq('target_id', contentId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addComment(contentId: string, content: string, parentId?: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('未登录');
+
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({
+      user_id: user.id,
+      target_type: 'content',
+      target_id: contentId,
+      content,
+      parent_id: parentId,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

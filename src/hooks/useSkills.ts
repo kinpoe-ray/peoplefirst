@@ -180,18 +180,19 @@ export const useUserSkills = () => {
 
       if (error) throw error;
       
-      // @ts-ignore - 临时忽略类型检查
+      const skillData = data.skills as unknown;
+      const skillArray = Array.isArray(skillData) ? skillData : [skillData];
+      const skillObject = skillArray[0] as Skill | undefined;
+
       const formattedData = {
         skill_id: data.skill_id,
         level: data.level,
         score: data.score,
         verified: data.verified,
-        // @ts-ignore
-        skill: Array.isArray(data.skills) ? data.skills[0] : (data.skills ? { 
-          // @ts-ignore
-          ...data.skills, 
-          created_at: new Date().toISOString()
-        } : undefined),
+        skill: skillObject ? {
+          ...skillObject,
+          created_at: skillObject.created_at || new Date().toISOString()
+        } : undefined,
       };
       
       setUserSkills(prev => {
@@ -388,7 +389,8 @@ export const useSkillStats = () => {
       // 按类别统计
       const categoryDistribution: { [category: string]: number } = {};
       userSkills.forEach(us => {
-        const category = (us.skills as any)?.category || '未分类';
+        const skillData = us.skills as unknown as Skill | undefined;
+        const category = skillData?.category || '未分类';
         categoryDistribution[category] = (categoryDistribution[category] || 0) + 1;
       });
 
@@ -396,21 +398,27 @@ export const useSkillStats = () => {
       const recentAchievements: SkillAchievement[] = userSkills
         .filter(us => us.level >= 3)
         .slice(0, 5)
-        .map(us => ({
-          skill_id: us.skill_id,
-          skill_name: (us.skills as any)?.name || '未知技能',
-          level_achieved: us.level,
-          score: us.score,
-          achieved_at: new Date().toISOString(),
-        }));
+        .map(us => {
+          const skillData = us.skills as unknown as Skill | undefined;
+          return {
+            skill_id: us.skill_id,
+            skill_name: skillData?.name || '未知技能',
+            level_achieved: us.level,
+            score: us.score,
+            achieved_at: new Date().toISOString(),
+          };
+        });
 
       // 模拟技能趋势
-      const skillTrends = userSkills.slice(0, 3).map(us => ({
-        skill_name: (us.skills as any)?.name || '未知技能',
-        score_change: Math.random() * 20 - 10, // 模拟分数变化
-        level_change: Math.random() > 0.5 ? 1 : 0, // 模拟等级变化
-        period: 'month' as const,
-      }));
+      const skillTrends = userSkills.slice(0, 3).map(us => {
+        const skillData = us.skills as unknown as Skill | undefined;
+        return {
+          skill_name: skillData?.name || '未知技能',
+          score_change: Math.random() * 20 - 10, // 模拟分数变化
+          level_change: Math.random() > 0.5 ? 1 : 0, // 模拟等级变化
+          period: 'month' as const,
+        };
+      });
 
       setStats({
         total_skills: totalSkills,

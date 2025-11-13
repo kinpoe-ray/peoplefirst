@@ -8,13 +8,13 @@ export interface User {
   created_at: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data: T;
   message?: string;
   success: boolean;
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   data: T[];
   total: number;
   page: number;
@@ -299,13 +299,20 @@ export interface GuildMessage {
   is_edited: boolean;
 }
 
+export interface GuildActivityMetadata {
+  achievement_id?: string;
+  level?: number;
+  message_id?: string;
+  [key: string]: unknown;
+}
+
 export interface GuildActivity {
   id: string;
   guild_id: string;
   user_id: string;
   activity_type: 'joined' | 'left' | 'message' | 'achievement' | 'level_up';
   content: string;
-  metadata?: any;
+  metadata?: GuildActivityMetadata;
   created_at: string;
   user_name: string;
   user_avatar?: string;

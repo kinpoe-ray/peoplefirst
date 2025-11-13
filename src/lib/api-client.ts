@@ -9,16 +9,18 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3015/api/
 
 // ==================== Types ====================
 
-export interface ApiResponse<T = any> {
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-    timestamp: string;
-  };
+  error?: ApiError;
 }
 
 export interface PaginationParams {
@@ -84,15 +86,24 @@ export interface LeaderboardEntry {
 }
 
 // Social Types
+export interface PostUser {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+  user_type: string;
+}
+
+export interface PostAttachment {
+  type: 'image' | 'video' | 'link' | 'file';
+  url: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Post {
   id: string;
-  user: any;
+  user: PostUser;
   content: string;
-  attachments: Array<{
-    type: 'image' | 'video' | 'link' | 'file';
-    url: string;
-    metadata?: any;
-  }>;
+  attachments: PostAttachment[];
   visibility: 'public' | 'followers' | 'private';
   created_at: string;
   updated_at: string;
@@ -105,7 +116,7 @@ export interface Post {
 export interface Comment {
   id: string;
   post_id: string;
-  user: any;
+  user: PostUser;
   content: string;
   parent_comment_id?: string;
   created_at: string;
@@ -150,22 +161,28 @@ export interface LearningPathProgress {
 }
 
 // Certification Types
+export interface CertificationEvidence {
+  type: string;
+  url: string;
+  description: string;
+}
+
 export interface Certification {
   id: string;
-  user: any;
-  skill: any;
+  user: PostUser;
+  skill: {
+    id: string;
+    name: string;
+    category: string;
+  };
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'expired';
   issued_at: string;
   expires_at?: string;
   verification_url: string;
   certificate_number: string;
-  verified_by?: any;
-  evidence: Array<{
-    type: string;
-    url: string;
-    description: string;
-  }>;
+  verified_by?: PostUser;
+  evidence: CertificationEvidence[];
 }
 
 // AI Types
@@ -285,10 +302,14 @@ class EvolvAPIClient {
     }
   ): Promise<ApiResponse<{
     achievements: Achievement[];
-    stats: any;
+    stats: {
+      total_earned: number;
+      total_points: number;
+      rarity_breakdown: Record<string, number>;
+    };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/users/${userId}/achievements${query ? `?${query}` : ''}`);
   }
 
@@ -299,7 +320,7 @@ class EvolvAPIClient {
     userId: string,
     data: {
       achievement_id: string;
-      metadata?: any;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<ApiResponse<Achievement>> {
     return this.request(`/users/${userId}/achievements`, {
@@ -323,7 +344,7 @@ class EvolvAPIClient {
     data: {
       amount: number;
       source: string;
-      metadata?: any;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<ApiResponse<{
     xp_added: number;
@@ -359,10 +380,14 @@ class EvolvAPIClient {
       score: number;
       percentile: number;
     };
-    metadata: any;
+    metadata: {
+      period_start: string;
+      period_end: string;
+      total_participants: number;
+    };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/leaderboard?${query}`);
   }
 
@@ -378,11 +403,11 @@ class EvolvAPIClient {
     limit?: number;
     since?: string;
   }): Promise<ApiResponse<{
-    feed: any[];
+    feed: Post[];
     pagination: Pagination;
     has_new: boolean;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/feed${query ? `?${query}` : ''}`);
   }
 
@@ -419,7 +444,7 @@ class EvolvAPIClient {
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/posts/${postId}/comments${query ? `?${query}` : ''}`);
   }
 
@@ -458,11 +483,11 @@ class EvolvAPIClient {
     userId: string,
     params?: PaginationParams
   ): Promise<ApiResponse<{
-    followers: any[];
+    followers: PostUser[];
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/users/${userId}/followers${query ? `?${query}` : ''}`);
   }
 
@@ -473,11 +498,11 @@ class EvolvAPIClient {
     userId: string,
     params?: PaginationParams
   ): Promise<ApiResponse<{
-    following: any[];
+    following: PostUser[];
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/users/${userId}/following${query ? `?${query}` : ''}`);
   }
 
@@ -514,14 +539,24 @@ class EvolvAPIClient {
     }>;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/learning-paths${query ? `?${query}` : ''}`);
   }
 
   /**
    * Get learning path details
    */
-  async getLearningPathDetails(pathId: string): Promise<ApiResponse<any>> {
+  async getLearningPathDetails(pathId: string): Promise<ApiResponse<LearningPath & {
+    steps: Array<{
+      id: string;
+      order: number;
+      title: string;
+      description: string;
+      estimated_duration: number;
+      content_type: string;
+      resources: Array<{ title: string; url: string; type: string }>;
+    }>;
+  }>> {
     return this.request(`/learning-paths/${pathId}`);
   }
 
@@ -632,7 +667,7 @@ class EvolvAPIClient {
     };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/users/${userId}/certifications${query ? `?${query}` : ''}`);
   }
 
@@ -712,7 +747,7 @@ class EvolvAPIClient {
       prefer_free_resources: boolean;
     };
     focus_areas?: string[];
-  }): Promise<ApiResponse<any>> {
+  }): Promise<ApiResponse<LearningPath>> {
     return this.request('/ai/learning-path-generator', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -731,11 +766,17 @@ class EvolvAPIClient {
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<{
-    skills: any[];
+    skills: Array<{
+      id: string;
+      name: string;
+      category: string;
+      difficulty: number;
+      description?: string;
+    }>;
     categories: string[];
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as any).toString();
+    const query = new URLSearchParams(params as Record<string, string>).toString();
     return this.request(`/skills${query ? `?${query}` : ''}`);
   }
 
@@ -746,9 +787,21 @@ class EvolvAPIClient {
     userId: string,
     verifiedOnly: boolean = false
   ): Promise<ApiResponse<{
-    skills: any[];
-    skill_graph: any;
-    stats: any;
+    skills: Array<{
+      skill_id: string;
+      skill_name: string;
+      level: number;
+      verified: boolean;
+    }>;
+    skill_graph: {
+      nodes: Array<{ id: string; x: number; y: number }>;
+      edges: Array<{ from: string; to: string }>;
+    };
+    stats: {
+      total_skills: number;
+      verified_skills: number;
+      average_level: number;
+    };
   }>> {
     const query = verifiedOnly ? '?verified_only=true' : '';
     return this.request(`/users/${userId}/skills${query}`);
@@ -780,7 +833,7 @@ export function useUserLevel(userId: string) {
           setLevel(response.data);
         }
       } catch (err) {
-        setError(err as Error);
+        setError(err instanceof Error ? err : new Error('Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -799,7 +852,7 @@ export function useLeaderboard(
   metric: 'xp' | 'skills' | 'achievements' | 'certifications' = 'xp'
 ) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userRank, setUserRank] = useState<any>(null);
+  const [userRank, setUserRank] = useState<{ rank: number; score: number; percentile: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -825,7 +878,7 @@ export function useLeaderboard(
 }
 
 export function useFeed(filter: 'all' | 'following' | 'guilds' | 'trending' = 'all') {
-  const [feed, setFeed] = useState<any[]>([]);
+  const [feed, setFeed] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
