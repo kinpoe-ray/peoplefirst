@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, AlertCircle, Flame, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import SEO from '../components/SEO';
+import { pageSEO } from '../config/seo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -45,6 +47,13 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-void flex relative overflow-hidden">
+      <SEO
+        title={pageSEO.login.title}
+        description={pageSEO.login.description}
+        url="/signin"
+        noindex={true}
+        keywords={['登录', 'PeopleFirst', '职业探索']}
+      />
       {/* Animated background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ember/10 rounded-full blur-[150px] animate-pulse" />

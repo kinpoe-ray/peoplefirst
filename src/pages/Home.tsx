@@ -2,9 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Target, MessageSquare, ArrowRight, Compass, Sparkles, Flame, Leaf, Zap } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import SEO from '../components/SEO';
 import { supabase } from '../lib/supabase';
 import { DashboardStats } from '../types/pathfinder';
 import { createLogger } from '../lib/logger';
+import { pageSEO } from '../config/seo';
 
 const logger = createLogger('Home');
 
@@ -57,6 +59,12 @@ export default function Home() {
 
   return (
     <Layout>
+      <SEO
+        title={pageSEO.home.title}
+        description={pageSEO.home.description}
+        url="/"
+        keywords={['职业探索', '职业规划', '技能测试', '职业体验', '迷茫者', '人生规划']}
+      />
       {/* Hero Section - Asymmetric Layout */}
       <section ref={heroRef} className="relative min-h-[90vh] flex items-center overflow-hidden">
         {/* Animated background elements */}

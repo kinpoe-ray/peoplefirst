@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, Heart, MessageCircle, FileText, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import SEO from '../components/SEO';
 import { useContents } from '../hooks/useContents';
 import { CareerCategory } from '../types/pathfinder';
 import { SkeletonList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/SearchInput';
+import { pageSEO } from '../config/seo';
 
 const categories: CareerCategory[] = ['全部', '运营', '产品', '设计', '开发', '市场'];
 
@@ -84,6 +86,12 @@ export default function ContentList() {
 
   return (
     <Layout>
+      <SEO
+        title={pageSEO.contents.title}
+        description={pageSEO.contents.description}
+        url="/contents"
+        keywords={['职业去魅化', '职业真相', '工作日常', '职业探索', '运营', '产品', '设计', '开发', '市场']}
+      />
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">

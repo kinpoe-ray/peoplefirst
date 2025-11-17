@@ -1,0 +1,37 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screenshot for PWA install prompt (wide) -->
+  <rect width="1280" height="720" fill="#030303"/>
+
+  <!-- Header -->
+  <rect y="0" width="1280" height="64" fill="#0A0A0A"/>
+  <circle cx="32" cy="32" r="20" fill="#FF6B35"/>
+  <path d="M32 20C30 20 27 22 27 26C27 30 30 32 30 32C30 32 29 33 29 35C29 37 30 39 32 39C34 39 35 37 35 35C35 33 34 32 34 32C34 32 37 30 37 26C37 22 34 20 32 20Z" fill="#030303"/>
+  <circle cx="29" cy="25" r="2" fill="#FAFAFA"/>
+  <circle cx="35" cy="25" r="2" fill="#FAFAFA"/>
+  <text x="72" y="40" font-family="system-ui" font-size="24" font-weight="bold" fill="#FFFFFF">PeopleFirst</text>
+
+  <!-- Main content area -->
+  <rect x="40" y="104" width="400" height="560" rx="16" fill="#141414"/>
+  <text x="240" y="150" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="600" fill="#FF6B35">Navigation</text>
+  <rect x="60" y="180" width="360" height="48" rx="8" fill="#1F1F1F"/>
+  <rect x="60" y="244" width="360" height="48" rx="8" fill="#1F1F1F"/>
+  <rect x="60" y="308" width="360" height="48" rx="8" fill="#1F1F1F"/>
+  <rect x="60" y="372" width="360" height="48" rx="8" fill="#1F1F1F"/>
+
+  <rect x="480" y="104" width="760" height="560" rx="16" fill="#141414"/>
+  <text x="860" y="180" text-anchor="middle" font-family="system-ui" font-size="32" font-weight="bold" fill="#FFFFFF">Welcome to PeopleFirst</text>
+  <text x="860" y="230" text-anchor="middle" font-family="system-ui" font-size="18" fill="#A3A3A3">Put people at the center of your learning journey</text>
+
+  <!-- Feature cards -->
+  <rect x="520" y="280" width="220" height="160" rx="12" fill="#1F1F1F"/>
+  <circle cx="630" cy="340" r="30" fill="#FF6B35" opacity="0.3"/>
+  <text x="630" y="410" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#FFFFFF">Learning Paths</text>
+
+  <rect x="760" y="280" width="220" height="160" rx="12" fill="#1F1F1F"/>
+  <circle cx="870" cy="340" r="30" fill="#22C55E" opacity="0.3"/>
+  <text x="870" y="410" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#FFFFFF">Progress Tracking</text>
+
+  <rect x="1000" y="280" width="220" height="160" rx="12" fill="#1F1F1F"/>
+  <circle cx="1110" cy="340" r="30" fill="#8B5CF6" opacity="0.3"/>
+  <text x="1110" y="410" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#FFFFFF">Collaboration</text>
+</svg>

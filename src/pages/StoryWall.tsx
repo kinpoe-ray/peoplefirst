@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Heart, MessageCircle, Plus, BookOpen, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import SEO from '../components/SEO';
 import { useStories } from '../hooks/useStories';
 import { useAuthStore } from '../stores/authStore';
 import { SkeletonStoryList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/SearchInput';
+import { pageSEO } from '../config/seo';
 
 export default function StoryWall() {
   const { user } = useAuthStore();
@@ -71,6 +73,12 @@ export default function StoryWall() {
 
   return (
     <Layout>
+      <SEO
+        title={pageSEO.stories.title}
+        description={pageSEO.stories.description}
+        url="/stories"
+        keywords={['迷茫者故事', '真实故事', '职业经历', '人生分享', '探索故事', '成长故事']}
+      />
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

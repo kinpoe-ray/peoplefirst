@@ -1,0 +1,35 @@
+<svg width="540" height="720" viewBox="0 0 540 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screenshot for PWA install prompt (narrow/mobile) -->
+  <rect width="540" height="720" fill="#030303"/>
+
+  <!-- Header -->
+  <rect y="0" width="540" height="56" fill="#0A0A0A"/>
+  <circle cx="28" cy="28" r="18" fill="#FF6B35"/>
+  <path d="M28 18C26 18 23 20 23 24C23 28 26 30 26 30C26 30 25 31 25 33C25 35 26 37 28 37C30 37 31 35 31 33C31 31 30 30 30 30C30 30 33 28 33 24C33 20 30 18 28 18Z" fill="#030303"/>
+  <circle cx="25" cy="23" r="2" fill="#FAFAFA"/>
+  <circle cx="31" cy="23" r="2" fill="#FAFAFA"/>
+  <text x="60" y="34" font-family="system-ui" font-size="20" font-weight="bold" fill="#FFFFFF">PeopleFirst</text>
+
+  <!-- Main content -->
+  <rect x="20" y="76" width="500" height="160" rx="12" fill="#141414"/>
+  <text x="270" y="140" text-anchor="middle" font-family="system-ui" font-size="24" font-weight="bold" fill="#FFFFFF">Welcome Back</text>
+  <text x="270" y="180" text-anchor="middle" font-family="system-ui" font-size="14" fill="#A3A3A3">Continue your learning journey</text>
+
+  <!-- Cards -->
+  <rect x="20" y="256" width="500" height="120" rx="12" fill="#141414"/>
+  <circle cx="80" cy="316" r="30" fill="#FF6B35" opacity="0.3"/>
+  <text x="280" y="310" font-family="system-ui" font-size="16" font-weight="600" fill="#FFFFFF">Current Progress</text>
+  <rect x="140" y="330" width="200" height="8" rx="4" fill="#1F1F1F"/>
+  <rect x="140" y="330" width="140" height="8" rx="4" fill="#FF6B35"/>
+  <text x="360" y="338" font-family="system-ui" font-size="12" fill="#A3A3A3">70%</text>
+
+  <rect x="20" y="396" width="500" height="120" rx="12" fill="#141414"/>
+  <circle cx="80" cy="456" r="30" fill="#22C55E" opacity="0.3"/>
+  <text x="280" y="450" font-family="system-ui" font-size="16" font-weight="600" fill="#FFFFFF">Recent Activity</text>
+  <text x="140" y="478" font-family="system-ui" font-size="12" fill="#A3A3A3">5 lessons completed this week</text>
+
+  <rect x="20" y="536" width="500" height="120" rx="12" fill="#141414"/>
+  <circle cx="80" cy="596" r="30" fill="#8B5CF6" opacity="0.3"/>
+  <text x="280" y="590" font-family="system-ui" font-size="16" font-weight="600" fill="#FFFFFF">Upcoming Goals</text>
+  <text x="140" y="618" font-family="system-ui" font-size="12" fill="#A3A3A3">3 new milestones to achieve</text>
+</svg>

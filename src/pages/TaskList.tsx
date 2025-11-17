@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Clock, Users, Star, Zap, TrendingUp, Target, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import SEO from '../components/SEO';
 import { useTasks } from '../hooks/useTasks';
 import { TaskDifficulty } from '../types/pathfinder';
 import { SkeletonTaskList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/SearchInput';
+import { pageSEO } from '../config/seo';
 
 const difficulties: Array<{ label: string; value: TaskDifficulty | 'all'; color: string; icon: string }> = [
   { label: '全部任务', value: 'all', color: 'pathBlue', icon: 'all' },
@@ -113,6 +115,12 @@ export default function TaskList() {
 
   return (
     <Layout>
+      <SEO
+        title={pageSEO.tasks.title}
+        description={pageSEO.tasks.description}
+        url="/tasks"
+        keywords={['技能测试', '职业体验', 'AI评估', '实操任务', '发现天赋', '职业技能']}
+      />
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Hero Header */}
         <div className="mb-12 text-center">
