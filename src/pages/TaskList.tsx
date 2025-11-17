@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Clock, Users, Star, Zap, TrendingUp, Target } from 'lucide-react';
+import { Clock, Users, Star, Zap, TrendingUp, Target, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { useTaskStore } from '../stores/taskStore';
+import { useTasks } from '../hooks/useTasks';
 import { TaskDifficulty } from '../types/pathfinder';
 import { SkeletonTaskList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
+import SearchInput from '../components/SearchInput';
 
 const difficulties: Array<{ label: string; value: TaskDifficulty | 'all'; color: string; icon: string }> = [
   { label: '全部任务', value: 'all', color: 'pathBlue', icon: 'all' },
@@ -15,16 +16,76 @@ const difficulties: Array<{ label: string; value: TaskDifficulty | 'all'; color:
 ];
 
 export default function TaskList() {
-  const { tasks, selectedDifficulty, pagination, isLoading, fetchTasks, setSelectedDifficulty, setCurrentPage } = useTaskStore();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedDifficulty, setSelectedDifficulty] = useState<TaskDifficulty | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Initialize from URL params
   useEffect(() => {
     const pageParam = searchParams.get('page');
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const validPage = !isNaN(page) && page >= 1 ? page : 1;
-    fetchTasks(selectedDifficulty === 'all' ? undefined : selectedDifficulty, validPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setCurrentPage(validPage);
+  }, [searchParams]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      // Reset to page 1 when search changes
+      if (searchQuery !== debouncedSearch) {
+        setCurrentPage(1);
+        setSearchParams({ page: '1' });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearch, setSearchParams]);
+
+  // Use React Query for data fetching with caching
+  const {
+    data: paginatedData,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useTasks(
+    selectedDifficulty === 'all' ? undefined : selectedDifficulty,
+    currentPage,
+    12,
+    debouncedSearch || undefined
+  );
+
+  const tasks = paginatedData?.data || [];
+  const pagination = {
+    currentPage: paginatedData?.page || 1,
+    totalPages: paginatedData?.totalPages || 1,
+    total: paginatedData?.total || 0,
+    pageSize: paginatedData?.pageSize || 12,
+  };
+
+  const handleDifficultyChange = (difficulty: TaskDifficulty | 'all') => {
+    setSelectedDifficulty(difficulty);
+    setCurrentPage(1);
+    setSearchParams({ page: '1' });
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSearchParams({ page: page.toString() });
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setCurrentPage(1);
+    setSearchParams({ page: '1' });
+  };
 
   const getDifficultyStyle = (difficulty: TaskDifficulty) => {
     const styles = {
@@ -58,6 +119,9 @@ export default function TaskList() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-pathBlue/10 border border-pathBlue/30 rounded-full mb-6">
             <Zap className="w-4 h-4 text-pathBlue" />
             <span className="text-sm font-medium text-pathBlue">技能试验场</span>
+            {isFetching && !isLoading && (
+              <RefreshCw className="w-4 h-4 text-pathBlue animate-spin ml-2" />
+            )}
           </div>
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-dark-text-secondary bg-clip-text text-transparent">
             30-60分钟，体验一个职业的真实工作
@@ -66,6 +130,21 @@ export default function TaskList() {
             通过实操任务发现自己的天赋，获得AI智能评估反馈
           </p>
         </div>
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-warningRed/10 border border-warningRed/30 rounded-lg p-4 mb-6">
+            <p className="text-warningRed text-sm">
+              {error.message || '加载任务失败'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-sm text-pathBlue hover:text-pathBlue-dark"
+            >
+              点击重试
+            </button>
+          </div>
+        )}
 
         {/* Stats Bar */}
         <div className="grid grid-cols-3 gap-6 mb-8">
@@ -87,6 +166,17 @@ export default function TaskList() {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-8">
+          <SearchInput
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="搜索任务标题或描述..."
+            isLoading={isFetching}
+            className="max-w-xl"
+          />
+        </div>
+
         {/* Difficulty Filter */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
           {difficulties.map((diff) => {
@@ -94,7 +184,7 @@ export default function TaskList() {
             return (
               <button
                 key={diff.value}
-                onClick={() => setSelectedDifficulty(diff.value)}
+                onClick={() => handleDifficultyChange(diff.value)}
                 className={`px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                   isSelected
                     ? 'bg-pathBlue text-white shadow-lg shadow-pathBlue/30 scale-105'
@@ -121,7 +211,19 @@ export default function TaskList() {
               <Zap className="w-12 h-12 text-dark-text-tertiary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">暂无任务</h3>
-            <p className="text-dark-text-secondary">精彩内容即将上线，敬请期待</p>
+            <p className="text-dark-text-secondary mb-6">
+              {debouncedSearch
+                ? `未找到包含「${debouncedSearch}」的任务`
+                : '精彩内容即将上线，敬请期待'}
+            </p>
+            {debouncedSearch && (
+              <button
+                onClick={handleClearSearch}
+                className="px-6 py-2 bg-ember hover:bg-ember-dark text-white rounded-lg transition-colors"
+              >
+                清除搜索
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -198,8 +300,8 @@ export default function TaskList() {
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
-              onPageChange={setCurrentPage}
-              isLoading={isLoading}
+              onPageChange={handlePageChange}
+              isLoading={isFetching}
             />
           </>
         )}

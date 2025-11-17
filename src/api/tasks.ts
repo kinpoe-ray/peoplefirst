@@ -12,7 +12,8 @@ export interface PaginatedResponse<T> {
 export async function getTasks(
   difficulty?: TaskDifficulty,
   page: number = 1,
-  pageSize: number = 12
+  pageSize: number = 12,
+  searchQuery?: string
 ): Promise<PaginatedResponse<Task>> {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -26,6 +27,12 @@ export async function getTasks(
     countQuery = countQuery.eq('difficulty', difficulty);
   }
 
+  // Apply search filter to count query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    countQuery = countQuery.or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`);
+  }
+
   const { count } = await countQuery;
 
   // Then get paginated data
@@ -37,6 +44,12 @@ export async function getTasks(
 
   if (difficulty) {
     query = query.eq('difficulty', difficulty);
+  }
+
+  // Apply search filter to data query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    query = query.or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`);
   }
 
   const { data, error } = await query;

@@ -12,7 +12,8 @@ export interface PaginatedResponse<T> {
 export async function getContents(
   category?: CareerCategory,
   page: number = 1,
-  pageSize: number = 12
+  pageSize: number = 12,
+  searchQuery?: string
 ): Promise<PaginatedResponse<Content>> {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -24,6 +25,12 @@ export async function getContents(
 
   if (category && category !== '全部') {
     countQuery = countQuery.eq('category', category);
+  }
+
+  // Apply search filter to count query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    countQuery = countQuery.or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`);
   }
 
   const { count } = await countQuery;
@@ -40,6 +47,12 @@ export async function getContents(
 
   if (category && category !== '全部') {
     query = query.eq('category', category);
+  }
+
+  // Apply search filter to data query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    query = query.or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`);
   }
 
   const { data, error } = await query;

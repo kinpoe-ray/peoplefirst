@@ -15,18 +15,20 @@ interface TaskState {
   currentAttempt: UserTaskAttempt | null;
   userAttempts: UserTaskAttempt[];
   selectedDifficulty: TaskDifficulty | 'all';
+  searchQuery: string;
   pagination: PaginationState;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchTasks: (difficulty?: TaskDifficulty, page?: number) => Promise<void>;
+  fetchTasks: (difficulty?: TaskDifficulty, page?: number, searchQuery?: string) => Promise<void>;
   fetchTaskById: (id: string) => Promise<void>;
   startTask: (taskId: string) => Promise<void>;
   updateAttemptStep: (attemptId: string, step: number, submission?: TaskSubmissionContent) => Promise<void>;
   completeTask: (attemptId: string, rating: number) => Promise<void>;
   fetchUserAttempts: () => Promise<void>;
   setSelectedDifficulty: (difficulty: TaskDifficulty | 'all') => void;
+  setSearchQuery: (query: string) => void;
   setCurrentPage: (page: number) => void;
 }
 
@@ -36,6 +38,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   currentAttempt: null,
   userAttempts: [],
   selectedDifficulty: 'all',
+  searchQuery: '',
   pagination: {
     currentPage: 1,
     totalPages: 1,
@@ -45,10 +48,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchTasks: async (difficulty, page = 1) => {
+  fetchTasks: async (difficulty, page = 1, searchQuery) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await tasksApi.getTasks(difficulty, page, 12);
+      const query = searchQuery !== undefined ? searchQuery : get().searchQuery;
+      const response = await tasksApi.getTasks(difficulty, page, 12, query);
       set({
         tasks: response.data,
         pagination: {
@@ -130,8 +134,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     get().fetchTasks(difficulty === 'all' ? undefined : difficulty, 1);
   },
 
-  setCurrentPage: (page) => {
+  setSearchQuery: (query) => {
+    set({ searchQuery: query, pagination: { ...get().pagination, currentPage: 1 } });
     const { selectedDifficulty } = get();
-    get().fetchTasks(selectedDifficulty === 'all' ? undefined : selectedDifficulty, page);
+    get().fetchTasks(selectedDifficulty === 'all' ? undefined : selectedDifficulty, 1, query);
+  },
+
+  setCurrentPage: (page) => {
+    const { selectedDifficulty, searchQuery } = get();
+    get().fetchTasks(selectedDifficulty === 'all' ? undefined : selectedDifficulty, page, searchQuery);
   },
 }));

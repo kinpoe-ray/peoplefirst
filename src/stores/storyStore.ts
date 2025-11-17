@@ -15,13 +15,15 @@ interface PaginationState {
 interface StoryState {
   stories: Story[];
   currentStory: Story | null;
+  searchQuery: string;
   pagination: PaginationState;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchStories: (page?: number) => Promise<void>;
+  fetchStories: (page?: number, searchQuery?: string) => Promise<void>;
   fetchStoryById: (id: string) => Promise<void>;
+  setSearchQuery: (query: string) => void;
   setCurrentPage: (page: number) => void;
   createStory: (data: StoryFormData) => Promise<Story>;
   updateStory: (id: string, data: Partial<StoryFormData>) => Promise<void>;
@@ -33,6 +35,7 @@ interface StoryState {
 export const useStoryStore = create<StoryState>((set, get) => ({
   stories: [],
   currentStory: null,
+  searchQuery: '',
   pagination: {
     currentPage: 1,
     totalPages: 1,
@@ -42,10 +45,11 @@ export const useStoryStore = create<StoryState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchStories: async (page = 1) => {
+  fetchStories: async (page = 1, searchQuery) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await storiesApi.getStories(page, 12);
+      const query = searchQuery !== undefined ? searchQuery : get().searchQuery;
+      const response = await storiesApi.getStories(page, 12, query);
       set({
         stories: response.data,
         pagination: {
@@ -73,8 +77,14 @@ export const useStoryStore = create<StoryState>((set, get) => ({
     }
   },
 
+  setSearchQuery: (query) => {
+    set({ searchQuery: query, pagination: { ...get().pagination, currentPage: 1 } });
+    get().fetchStories(1, query);
+  },
+
   setCurrentPage: (page) => {
-    get().fetchStories(page);
+    const { searchQuery } = get();
+    get().fetchStories(page, searchQuery);
   },
 
   createStory: async (data) => {

@@ -1,24 +1,73 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Heart, MessageCircle, Plus, BookOpen } from 'lucide-react';
+import { Heart, MessageCircle, Plus, BookOpen, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { useStoryStore } from '../stores/storyStore';
+import { useStories } from '../hooks/useStories';
 import { useAuthStore } from '../stores/authStore';
 import { SkeletonStoryList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
+import SearchInput from '../components/SearchInput';
 
 export default function StoryWall() {
-  const { stories, pagination, isLoading, fetchStories, setCurrentPage } = useStoryStore();
   const { user } = useAuthStore();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Initialize from URL params
   useEffect(() => {
     const pageParam = searchParams.get('page');
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const validPage = !isNaN(page) && page >= 1 ? page : 1;
-    fetchStories(validPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setCurrentPage(validPage);
+  }, [searchParams]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      // Reset to page 1 when search changes
+      if (searchQuery !== debouncedSearch) {
+        setCurrentPage(1);
+        setSearchParams({ page: '1' });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearch, setSearchParams]);
+
+  // Use React Query for data fetching with caching
+  const {
+    data: paginatedData,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useStories(currentPage, 12, debouncedSearch || undefined);
+
+  const stories = paginatedData?.data || [];
+  const pagination = {
+    currentPage: paginatedData?.page || 1,
+    totalPages: paginatedData?.totalPages || 1,
+    total: paginatedData?.total || 0,
+    pageSize: paginatedData?.pageSize || 12,
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSearchParams({ page: page.toString() });
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setCurrentPage(1);
+    setSearchParams({ page: '1' });
+  };
 
   return (
     <Layout>
@@ -30,15 +79,46 @@ export default function StoryWall() {
             <p className="text-dark-text-secondary">分享你的尝试、失败和发现</p>
           </div>
 
-          {user && (
-            <Link
-              to="/stories/create"
-              className="flex items-center gap-2 px-6 py-3 bg-pathBlue hover:bg-pathBlue-dark text-white rounded-lg transition-colors duration-200"
+          <div className="flex items-center gap-4">
+            {isFetching && !isLoading && (
+              <RefreshCw className="w-5 h-5 text-pathBlue animate-spin" />
+            )}
+            {user && (
+              <Link
+                to="/stories/create"
+                className="flex items-center gap-2 px-6 py-3 bg-pathBlue hover:bg-pathBlue-dark text-white rounded-lg transition-colors duration-200"
+              >
+                <Plus className="w-5 h-5" />
+                发布故事
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-warningRed/10 border border-warningRed/30 rounded-lg p-4 mb-6">
+            <p className="text-warningRed text-sm">
+              {error.message || '加载故事失败'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 text-sm text-pathBlue hover:text-pathBlue-dark"
             >
-              <Plus className="w-5 h-5" />
-              发布故事
-            </Link>
-          )}
+              点击重试
+            </button>
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="mb-8">
+          <SearchInput
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="搜索故事标题或内容..."
+            isLoading={isFetching}
+            className="max-w-xl"
+          />
         </div>
 
         {/* Stories Grid */}
@@ -52,8 +132,19 @@ export default function StoryWall() {
               <BookOpen className="w-12 h-12 text-dark-text-tertiary" />
             </div>
             <h3 className="text-xl font-semibold mb-2 text-white">暂无故事</h3>
-            <p className="text-dark-text-secondary mb-6">成为第一个分享故事的人吧!</p>
-            {user && (
+            <p className="text-dark-text-secondary mb-6">
+              {debouncedSearch
+                ? `未找到包含「${debouncedSearch}」的故事`
+                : '成为第一个分享故事的人吧!'}
+            </p>
+            {debouncedSearch ? (
+              <button
+                onClick={handleClearSearch}
+                className="px-6 py-2 bg-ember hover:bg-ember-dark text-white rounded-lg transition-colors"
+              >
+                清除搜索
+              </button>
+            ) : user ? (
               <Link
                 to="/stories/create"
                 className="px-6 py-3 bg-pathBlue hover:bg-pathBlue-dark text-white rounded-lg transition-colors flex items-center gap-2"
@@ -61,7 +152,7 @@ export default function StoryWall() {
                 <Plus className="w-5 h-5" />
                 发布故事
               </Link>
-            )}
+            ) : null}
           </div>
         ) : (
           <>
@@ -124,8 +215,8 @@ export default function StoryWall() {
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
-              onPageChange={setCurrentPage}
-              isLoading={isLoading}
+              onPageChange={handlePageChange}
+              isLoading={isFetching}
             />
           </>
         )}

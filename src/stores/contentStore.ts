@@ -16,14 +16,16 @@ interface ContentState {
   contents: Content[];
   currentContent: Content | null;
   selectedCategory: CareerCategory;
+  searchQuery: string;
   pagination: PaginationState;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchContents: (category?: CareerCategory, page?: number) => Promise<void>;
+  fetchContents: (category?: CareerCategory, page?: number, searchQuery?: string) => Promise<void>;
   fetchContentById: (id: string) => Promise<void>;
   setSelectedCategory: (category: CareerCategory) => void;
+  setSearchQuery: (query: string) => void;
   setCurrentPage: (page: number) => void;
   incrementViewCount: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
@@ -33,6 +35,7 @@ export const useContentStore = create<ContentState>((set, get) => ({
   contents: [],
   currentContent: null,
   selectedCategory: '全部',
+  searchQuery: '',
   pagination: {
     currentPage: 1,
     totalPages: 1,
@@ -42,10 +45,11 @@ export const useContentStore = create<ContentState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchContents: async (category, page = 1) => {
+  fetchContents: async (category, page = 1, searchQuery) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await contentsApi.getContents(category, page, 12);
+      const query = searchQuery !== undefined ? searchQuery : get().searchQuery;
+      const response = await contentsApi.getContents(category, page, 12, query);
       set({
         contents: response.data,
         pagination: {
@@ -78,9 +82,15 @@ export const useContentStore = create<ContentState>((set, get) => ({
     get().fetchContents(category === '全部' ? undefined : category, 1);
   },
 
-  setCurrentPage: (page) => {
+  setSearchQuery: (query) => {
+    set({ searchQuery: query, pagination: { ...get().pagination, currentPage: 1 } });
     const { selectedCategory } = get();
-    get().fetchContents(selectedCategory === '全部' ? undefined : selectedCategory, page);
+    get().fetchContents(selectedCategory === '全部' ? undefined : selectedCategory, 1, query);
+  },
+
+  setCurrentPage: (page) => {
+    const { selectedCategory, searchQuery } = get();
+    get().fetchContents(selectedCategory === '全部' ? undefined : selectedCategory, page, searchQuery);
   },
 
   incrementViewCount: async (id) => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
@@ -19,6 +20,7 @@ import ResetPassword from './pages/ResetPassword';
 import { useAuthStore } from './stores/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestOnlyRoute from './components/GuestOnlyRoute';
+import { queryClient } from './lib/queryClient';
 
 function App() {
   const { checkAuth } = useAuthStore();
@@ -29,7 +31,8 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
         <Toaster
           position="top-right"
           richColors
@@ -100,6 +103,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </BrowserRouter>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

@@ -11,19 +11,28 @@ export interface PaginatedResponse<T> {
 
 export async function getStories(
   page: number = 1,
-  pageSize: number = 12
+  pageSize: number = 12,
+  searchQuery?: string
 ): Promise<PaginatedResponse<Story>> {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
   // First get total count
-  const { count } = await supabase
+  let countQuery = supabase
     .from('stories')
     .select('*', { count: 'exact', head: true })
     .eq('is_public', true);
 
+  // Apply search filter to count query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    countQuery = countQuery.or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`);
+  }
+
+  const { count } = await countQuery;
+
   // Then get paginated data
-  const { data, error } = await supabase
+  let query = supabase
     .from('stories')
     .select(`
       *,
@@ -32,6 +41,14 @@ export async function getStories(
     .eq('is_public', true)
     .order('created_at', { ascending: false })
     .range(from, to);
+
+  // Apply search filter to data query
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = `%${searchQuery.trim()}%`;
+    query = query.or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
