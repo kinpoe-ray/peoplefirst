@@ -1,0 +1,2609 @@
+openapi: 3.0.3
+info:
+  title: Evolv Platform API
+  description: |
+    Comprehensive API specification for the Evolv Platform - An AI-powered career development and learning platform.
+
+    ## Features
+    - User Growth & Gamification System
+    - Social Features & Community Engagement
+    - Learning Paths & Skill Development
+    - Skill Certifications & Verification
+    - AI-Powered Career Guidance (Grok API Integration)
+
+    ## Authentication
+    All endpoints require authentication via Supabase Auth JWT tokens unless marked as public.
+    Include the token in the Authorization header: `Bearer <token>`
+
+    ## Rate Limiting
+    - Anonymous: 10 requests/minute
+    - Authenticated: 60 requests/minute
+    - Premium: 120 requests/minute
+
+    ## Versioning
+    API versioning follows semantic versioning (v1, v2, etc.)
+  version: 1.0.0
+  contact:
+    name: Evolv Platform Team
+    email: support@evolvplatform.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.evolvplatform.com/api/v1
+    description: Production server
+  - url: https://staging-api.evolvplatform.com/api/v1
+    description: Staging server
+  - url: http://localhost:3015/api/v1
+    description: Local development server
+
+tags:
+  - name: User Growth
+    description: User achievements, levels, experience points, and leaderboards
+  - name: Social
+    description: Social features including posts, comments, likes, followers
+  - name: Learning Paths
+    description: Learning path recommendations, enrollment, and progress tracking
+  - name: Certifications
+    description: Skill certification requests and verification
+  - name: AI Integration
+    description: AI-powered career assessment and recommendations via Grok API
+  - name: Skills
+    description: Skill management and tracking
+  - name: Guilds
+    description: Guild management and chat features
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # ==================== USER GROWTH SYSTEM ====================
+
+  /users/{userId}/achievements:
+    get:
+      tags:
+        - User Growth
+      summary: Get user achievements
+      description: Retrieve all achievements earned by a specific user
+      operationId: getUserAchievements
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - name: category
+          in: query
+          description: Filter by achievement category
+          schema:
+            type: string
+            enum: [learning, social, achievement, skill, milestone]
+        - name: rarity
+          in: query
+          description: Filter by rarity level
+          schema:
+            type: string
+            enum: [common, rare, epic, legendary]
+        - name: earned
+          in: query
+          description: Filter by earned status
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved achievements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      achievements:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserAchievement'
+                      stats:
+                        $ref: '#/components/schemas/AchievementStats'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+              examples:
+                success:
+                  $ref: '#/components/examples/AchievementsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 300
+      x-rate-limit: 60
+
+    post:
+      tags:
+        - User Growth
+      summary: Award achievement to user
+      description: Award a specific achievement to a user (requires admin or system role)
+      operationId: awardAchievement
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - achievement_id
+              properties:
+                achievement_id:
+                  type: string
+                  format: uuid
+                  description: ID of the achievement to award
+                metadata:
+                  type: object
+                  description: Additional metadata about the achievement
+                  properties:
+                    score:
+                      type: number
+                      example: 95
+                    context:
+                      type: string
+                      example: "Completed advanced JavaScript course"
+      responses:
+        '201':
+          description: Achievement awarded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/UserAchievement'
+                  message:
+                    type: string
+                    example: "Achievement awarded successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Achievement already earned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  code: "ACHIEVEMENT_ALREADY_EARNED"
+                  message: "User has already earned this achievement"
+      x-rate-limit: 30
+
+  /users/{userId}/level:
+    get:
+      tags:
+        - User Growth
+      summary: Get user level and XP
+      description: Retrieve current level, experience points, and progress to next level
+      operationId: getUserLevel
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Successfully retrieved user level data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/UserLevel'
+              examples:
+                success:
+                  $ref: '#/components/examples/UserLevelResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 60
+      x-rate-limit: 60
+
+  /users/{userId}/xp:
+    post:
+      tags:
+        - User Growth
+      summary: Add experience points
+      description: Add XP to user account (triggered by system events)
+      operationId: addExperiencePoints
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - source
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                  maximum: 10000
+                  description: Amount of XP to add
+                  example: 50
+                source:
+                  type: string
+                  description: Source of the XP gain
+                  enum: [course_completion, skill_mastery, social_interaction, quiz_completion, project_submission, daily_login, achievement_unlock]
+                  example: "course_completion"
+                metadata:
+                  type: object
+                  description: Additional context
+                  properties:
+                    course_id:
+                      type: string
+                    skill_id:
+                      type: string
+                    description:
+                      type: string
+      responses:
+        '200':
+          description: XP added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      xp_added:
+                        type: integer
+                        example: 50
+                      total_xp:
+                        type: integer
+                        example: 1250
+                      current_level:
+                        type: integer
+                        example: 5
+                      level_up:
+                        type: boolean
+                        example: false
+                      new_level:
+                        type: integer
+                        nullable: true
+                        example: null
+                      rewards:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum: [achievement, badge, feature_unlock]
+                            id:
+                              type: string
+                            name:
+                              type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      x-rate-limit: 30
+
+  /leaderboard:
+    get:
+      tags:
+        - User Growth
+      summary: Get rankings leaderboard
+      description: Retrieve user rankings by XP, skills, or achievements
+      operationId: getLeaderboard
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: Type of leaderboard
+          schema:
+            type: string
+            enum: [weekly, monthly, all-time]
+            default: all-time
+        - name: metric
+          in: query
+          description: Metric to rank by
+          schema:
+            type: string
+            enum: [xp, skills, achievements, certifications]
+            default: xp
+        - name: category
+          in: query
+          description: Category filter for skill-based leaderboards
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved leaderboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      leaderboard:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LeaderboardEntry'
+                      user_rank:
+                        type: object
+                        description: Current user's ranking
+                        properties:
+                          rank:
+                            type: integer
+                            example: 42
+                          score:
+                            type: integer
+                            example: 1250
+                          percentile:
+                            type: number
+                            format: float
+                            example: 75.5
+                      metadata:
+                        type: object
+                        properties:
+                          period_start:
+                            type: string
+                            format: date-time
+                          period_end:
+                            type: string
+                            format: date-time
+                          total_participants:
+                            type: integer
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+      security: []
+      x-cache: 300
+      x-rate-limit: 60
+
+  # ==================== SOCIAL FEATURES ====================
+
+  /feed:
+    get:
+      tags:
+        - Social
+      summary: Get personalized activity feed
+      description: Retrieve personalized feed with posts from followed users and guilds
+      operationId: getFeed
+      parameters:
+        - name: filter
+          in: query
+          description: Filter feed content
+          schema:
+            type: string
+            enum: [all, following, guilds, trending]
+            default: all
+        - name: content_type
+          in: query
+          description: Filter by content type
+          schema:
+            type: string
+            enum: [all, post, achievement, skill_update, course_completion]
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: since
+          in: query
+          description: Get posts since timestamp (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successfully retrieved feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      feed:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FeedItem'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+                      has_new:
+                        type: boolean
+                        description: Whether new items are available
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      x-cache: 60
+      x-rate-limit: 60
+
+  /posts:
+    post:
+      tags:
+        - Social
+      summary: Create a new post
+      description: Create a new social post with optional attachments
+      operationId: createPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Post'
+                  message:
+                    type: string
+                    example: "Post created successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      x-rate-limit: 20
+
+  /posts/{postId}/comments:
+    get:
+      tags:
+        - Social
+      summary: Get post comments
+      description: Retrieve all comments for a specific post
+      operationId: getPostComments
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [newest, oldest, popular]
+            default: newest
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      comments:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comment'
+                      total_count:
+                        type: integer
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 60
+      x-rate-limit: 60
+
+    post:
+      tags:
+        - Social
+      summary: Add comment to post
+      description: Add a new comment to a specific post
+      operationId: addComment
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                  example: "Great insight! This helped me understand better."
+                parent_comment_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: For nested replies
+      responses:
+        '201':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-rate-limit: 30
+
+  /posts/{postId}/like:
+    post:
+      tags:
+        - Social
+      summary: Like or unlike a post
+      description: Toggle like status on a post
+      operationId: togglePostLike
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Like status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      liked:
+                        type: boolean
+                        example: true
+                      likes_count:
+                        type: integer
+                        example: 42
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-rate-limit: 60
+
+  /users/{userId}/followers:
+    get:
+      tags:
+        - Social
+      summary: Get user followers
+      description: Retrieve list of users following the specified user
+      operationId: getUserFollowers
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved followers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      followers:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserProfile'
+                      total_count:
+                        type: integer
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 300
+      x-rate-limit: 60
+
+  /users/{userId}/following:
+    get:
+      tags:
+        - Social
+      summary: Get users being followed
+      description: Retrieve list of users that the specified user is following
+      operationId: getUserFollowing
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved following list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      following:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserProfile'
+                      total_count:
+                        type: integer
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 300
+      x-rate-limit: 60
+
+  /users/{userId}/follow:
+    post:
+      tags:
+        - Social
+      summary: Follow or unfollow user
+      description: Toggle follow status for a user
+      operationId: toggleFollowUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Follow status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      following:
+                        type: boolean
+                        example: true
+                      followers_count:
+                        type: integer
+                        example: 128
+        '400':
+          description: Cannot follow yourself
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-rate-limit: 30
+
+  # ==================== LEARNING PATHS ====================
+
+  /learning-paths:
+    get:
+      tags:
+        - Learning Paths
+      summary: Get recommended learning paths
+      description: Retrieve personalized learning path recommendations based on user profile
+      operationId: getLearningPaths
+      parameters:
+        - name: skill_level
+          in: query
+          description: Filter by skill level
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced, expert]
+        - name: category
+          in: query
+          description: Filter by skill category
+          schema:
+            type: string
+        - name: duration
+          in: query
+          description: Maximum duration in hours
+          schema:
+            type: integer
+            minimum: 1
+        - name: status
+          in: query
+          description: Filter by enrollment status
+          schema:
+            type: string
+            enum: [available, enrolled, completed]
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved learning paths
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      paths:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LearningPath'
+                      recommendations:
+                        type: array
+                        description: AI-powered recommendations
+                        items:
+                          type: object
+                          properties:
+                            path_id:
+                              type: string
+                            relevance_score:
+                              type: number
+                              format: float
+                            reason:
+                              type: string
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      x-cache: 300
+      x-rate-limit: 60
+
+  /learning-paths/{pathId}:
+    get:
+      tags:
+        - Learning Paths
+      summary: Get learning path details
+      description: Retrieve detailed information about a specific learning path
+      operationId: getLearningPathDetails
+      parameters:
+        - name: pathId
+          in: path
+          required: true
+          description: Learning path ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved learning path details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LearningPathDetails'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 600
+      x-rate-limit: 60
+
+  /learning-paths/{pathId}/enroll:
+    post:
+      tags:
+        - Learning Paths
+      summary: Enroll in learning path
+      description: Enroll user in a specific learning path
+      operationId: enrollInLearningPath
+      parameters:
+        - name: pathId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_date:
+                  type: string
+                  format: date
+                  description: Preferred start date (defaults to today)
+                goals:
+                  type: array
+                  description: Personal learning goals
+                  items:
+                    type: string
+                notifications_enabled:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Successfully enrolled in learning path
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      enrollment_id:
+                        type: string
+                        format: uuid
+                      path_id:
+                        type: string
+                        format: uuid
+                      enrolled_at:
+                        type: string
+                        format: date-time
+                      estimated_completion:
+                        type: string
+                        format: date
+                  message:
+                    type: string
+                    example: "Successfully enrolled in learning path"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Already enrolled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-rate-limit: 20
+
+  /learning-paths/{pathId}/progress:
+    get:
+      tags:
+        - Learning Paths
+      summary: Get learning path progress
+      description: Retrieve user's progress in a learning path
+      operationId: getLearningPathProgress
+      parameters:
+        - name: pathId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LearningPathProgress'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 60
+      x-rate-limit: 60
+
+    put:
+      tags:
+        - Learning Paths
+      summary: Update learning path progress
+      description: Update progress for a specific step in the learning path
+      operationId: updateLearningPathProgress
+      parameters:
+        - name: pathId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - step_id
+                - status
+              properties:
+                step_id:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+                  enum: [not_started, in_progress, completed, skipped]
+                completion_percentage:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                time_spent:
+                  type: integer
+                  description: Time spent in minutes
+                notes:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Progress updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LearningPathProgress'
+                  rewards:
+                    type: array
+                    description: Rewards earned for progress
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum: [xp, achievement, badge]
+                        amount:
+                          type: integer
+                        name:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-rate-limit: 30
+
+  # ==================== SKILL CERTIFICATIONS ====================
+
+  /skills/{skillId}/certify:
+    post:
+      tags:
+        - Certifications
+      summary: Request skill certification
+      description: Submit a request for skill certification
+      operationId: requestSkillCertification
+      parameters:
+        - name: skillId
+          in: path
+          required: true
+          description: Skill ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - evidence_type
+              properties:
+                evidence_type:
+                  type: string
+                  enum: [assessment, project, portfolio, peer_review, external_certificate]
+                evidence_urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: URLs to evidence (projects, portfolios, etc.)
+                assessment_id:
+                  type: string
+                  format: uuid
+                  description: ID of completed assessment
+                description:
+                  type: string
+                  maxLength: 2000
+                  description: Description of skills demonstrated
+                requested_level:
+                  type: string
+                  enum: [beginner, intermediate, advanced, expert]
+                  default: intermediate
+      responses:
+        '201':
+          description: Certification request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      certification_request_id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [pending, under_review, approved, rejected]
+                        example: pending
+                      estimated_review_time:
+                        type: string
+                        example: "3-5 business days"
+                  message:
+                    type: string
+                    example: "Certification request submitted successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-rate-limit: 10
+
+  /certifications/{certificationId}:
+    get:
+      tags:
+        - Certifications
+      summary: Get certification details
+      description: Retrieve details of a specific certification
+      operationId: getCertificationDetails
+      parameters:
+        - name: certificationId
+          in: path
+          required: true
+          description: Certification ID
+          schema:
+            type: string
+            format: uuid
+        - name: include_verification
+          in: query
+          description: Include verification QR code and public URL
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successfully retrieved certification details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Certification'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      security: []
+      x-cache: 3600
+      x-rate-limit: 60
+
+  /users/{userId}/certifications:
+    get:
+      tags:
+        - Certifications
+      summary: Get user certifications
+      description: Retrieve all certifications earned by a user
+      operationId: getUserCertifications
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - name: status
+          in: query
+          description: Filter by certification status
+          schema:
+            type: string
+            enum: [pending, approved, rejected, expired]
+        - name: skill_category
+          in: query
+          description: Filter by skill category
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved certifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      certifications:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Certification'
+                      stats:
+                        type: object
+                        properties:
+                          total_certifications:
+                            type: integer
+                          by_status:
+                            type: object
+                            properties:
+                              approved:
+                                type: integer
+                              pending:
+                                type: integer
+                              expired:
+                                type: integer
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 300
+      x-rate-limit: 60
+
+  # ==================== AI INTEGRATION (GROK API) ====================
+
+  /ai/career-assessment:
+    post:
+      tags:
+        - AI Integration
+      summary: AI career assessment
+      description: Get AI-powered career analysis and recommendations using Grok API
+      operationId: getCareerAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_profile
+              properties:
+                user_profile:
+                  type: object
+                  required:
+                    - education_level
+                    - interests
+                  properties:
+                    education_level:
+                      type: string
+                      enum: [high_school, undergraduate, graduate, postgraduate]
+                    major:
+                      type: string
+                      example: "Computer Science"
+                    interests:
+                      type: array
+                      items:
+                        type: string
+                      example: ["AI/ML", "Web Development", "Data Science"]
+                    experience_years:
+                      type: integer
+                      minimum: 0
+                      example: 2
+                    current_skills:
+                      type: array
+                      items:
+                        type: string
+                      example: ["JavaScript", "Python", "React"]
+                    career_goals:
+                      type: string
+                      maxLength: 500
+                      example: "Become a senior full-stack developer"
+                analysis_depth:
+                  type: string
+                  enum: [quick, standard, comprehensive]
+                  default: standard
+                include_salary_insights:
+                  type: boolean
+                  default: true
+                market_region:
+                  type: string
+                  description: Region for market analysis
+                  example: "North America"
+      responses:
+        '200':
+          description: Career assessment completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      assessment_id:
+                        type: string
+                        format: uuid
+                      career_paths:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                              example: "Full Stack Developer"
+                            match_score:
+                              type: number
+                              format: float
+                              minimum: 0
+                              maximum: 100
+                              example: 87.5
+                            description:
+                              type: string
+                            required_skills:
+                              type: array
+                              items:
+                                type: string
+                            skill_gap:
+                              type: array
+                              description: Skills needed to achieve this career
+                              items:
+                                type: string
+                            salary_range:
+                              type: object
+                              properties:
+                                min:
+                                  type: integer
+                                max:
+                                  type: integer
+                                currency:
+                                  type: string
+                            time_to_ready:
+                              type: string
+                              example: "6-12 months"
+                            growth_outlook:
+                              type: string
+                              enum: [excellent, good, average, declining]
+                      strengths:
+                        type: array
+                        items:
+                          type: string
+                      areas_for_improvement:
+                        type: array
+                        items:
+                          type: string
+                      recommended_next_steps:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            step:
+                              type: string
+                            priority:
+                              type: string
+                              enum: [high, medium, low]
+                            estimated_duration:
+                              type: string
+                      market_insights:
+                        type: object
+                        properties:
+                          trending_skills:
+                            type: array
+                            items:
+                              type: string
+                          emerging_technologies:
+                            type: array
+                            items:
+                              type: string
+                          demand_forecast:
+                            type: string
+                      generated_at:
+                        type: string
+                        format: date-time
+              examples:
+                comprehensive:
+                  $ref: '#/components/examples/CareerAssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '503':
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-rate-limit: 5
+      x-ai-provider: grok
+
+  /ai/skill-recommendations:
+    post:
+      tags:
+        - AI Integration
+      summary: Get AI skill recommendations
+      description: Get personalized skill learning recommendations based on current profile
+      operationId: getSkillRecommendations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - current_skills
+              properties:
+                current_skills:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      skill_name:
+                        type: string
+                      level:
+                        type: integer
+                        minimum: 1
+                        maximum: 5
+                target_role:
+                  type: string
+                  description: Desired job role or career path
+                  example: "Senior Backend Developer"
+                time_commitment:
+                  type: string
+                  description: Available learning time per week
+                  example: "10 hours/week"
+                learning_style:
+                  type: string
+                  enum: [visual, reading, hands-on, mixed]
+                  default: mixed
+                constraints:
+                  type: object
+                  properties:
+                    avoid_categories:
+                      type: array
+                      items:
+                        type: string
+                    budget:
+                      type: string
+                      enum: [free, low, medium, unlimited]
+      responses:
+        '200':
+          description: Skill recommendations generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      recommendations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            skill_id:
+                              type: string
+                              format: uuid
+                            skill_name:
+                              type: string
+                            relevance_score:
+                              type: number
+                              format: float
+                            priority:
+                              type: string
+                              enum: [critical, high, medium, low]
+                            reason:
+                              type: string
+                            estimated_learning_time:
+                              type: string
+                            difficulty:
+                              type: string
+                              enum: [beginner, intermediate, advanced]
+                            prerequisites:
+                              type: array
+                              items:
+                                type: string
+                            resources:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  title:
+                                    type: string
+                                  type:
+                                    type: string
+                                    enum: [course, tutorial, book, project]
+                                  url:
+                                    type: string
+                                  cost:
+                                    type: string
+                      learning_roadmap:
+                        type: array
+                        description: Ordered sequence of skills to learn
+                        items:
+                          type: object
+                          properties:
+                            phase:
+                              type: integer
+                            skills:
+                              type: array
+                              items:
+                                type: string
+                            duration:
+                              type: string
+                      confidence_score:
+                        type: number
+                        format: float
+                        description: AI confidence in recommendations
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+      x-rate-limit: 10
+      x-ai-provider: grok
+
+  /ai/learning-path-generator:
+    post:
+      tags:
+        - AI Integration
+      summary: Generate personalized learning path
+      description: AI-generated custom learning path based on goals and constraints
+      operationId: generateLearningPath
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - goal
+                - current_level
+              properties:
+                goal:
+                  type: string
+                  description: Learning objective or target role
+                  example: "Master full-stack web development"
+                current_level:
+                  type: string
+                  enum: [absolute_beginner, beginner, intermediate, advanced]
+                current_skills:
+                  type: array
+                  items:
+                    type: string
+                  example: ["HTML", "CSS", "Basic JavaScript"]
+                time_constraint:
+                  type: object
+                  properties:
+                    duration_months:
+                      type: integer
+                      minimum: 1
+                      maximum: 24
+                      example: 6
+                    hours_per_week:
+                      type: integer
+                      minimum: 1
+                      maximum: 40
+                      example: 15
+                learning_preferences:
+                  type: object
+                  properties:
+                    style:
+                      type: string
+                      enum: [visual, reading, hands-on, mixed]
+                    pace:
+                      type: string
+                      enum: [relaxed, moderate, intensive]
+                    prefer_free_resources:
+                      type: boolean
+                      default: false
+                focus_areas:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific areas to emphasize
+                  example: ["Backend Development", "Database Design"]
+      responses:
+        '200':
+          description: Learning path generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      path_id:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                        example: "Full-Stack Web Development Mastery"
+                      description:
+                        type: string
+                      total_duration:
+                        type: string
+                        example: "6 months"
+                      difficulty_level:
+                        type: string
+                        enum: [beginner, intermediate, advanced, mixed]
+                      phases:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            phase_number:
+                              type: integer
+                            title:
+                              type: string
+                            description:
+                              type: string
+                            duration:
+                              type: string
+                            skills_covered:
+                              type: array
+                              items:
+                                type: string
+                            milestones:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  title:
+                                    type: string
+                                  description:
+                                    type: string
+                                  verification_method:
+                                    type: string
+                            resources:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  title:
+                                    type: string
+                                  type:
+                                    type: string
+                                  url:
+                                    type: string
+                                  estimated_time:
+                                    type: string
+                                  is_free:
+                                    type: boolean
+                      projects:
+                        type: array
+                        description: Hands-on projects to complete
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            description:
+                              type: string
+                            difficulty:
+                              type: string
+                            estimated_time:
+                              type: string
+                            skills_practiced:
+                              type: array
+                              items:
+                                type: string
+                      success_metrics:
+                        type: array
+                        description: How to measure progress
+                        items:
+                          type: string
+                      tips:
+                        type: array
+                        description: AI-generated learning tips
+                        items:
+                          type: string
+                      generated_at:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+      x-rate-limit: 5
+      x-ai-provider: grok
+
+  # ==================== ADDITIONAL ENDPOINTS ====================
+
+  /skills:
+    get:
+      tags:
+        - Skills
+      summary: Get available skills
+      description: Retrieve list of all available skills in the platform
+      operationId: getSkills
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+        - name: difficulty
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: search
+          in: query
+          description: Search skills by name
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successfully retrieved skills
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      skills:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Skill'
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+      security: []
+      x-cache: 3600
+      x-rate-limit: 60
+
+  /users/{userId}/skills:
+    get:
+      tags:
+        - Skills
+      summary: Get user skills
+      description: Retrieve all skills associated with a user
+      operationId: getUserSkills
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - name: verified_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successfully retrieved user skills
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      skills:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserSkillDetails'
+                      skill_graph:
+                        $ref: '#/components/schemas/SkillGraph'
+                      stats:
+                        $ref: '#/components/schemas/SkillStats'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      x-cache: 300
+      x-rate-limit: 60
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token
+
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service authentication
+
+  parameters:
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      description: User ID (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    # User & Profile Schemas
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        user_type:
+          type: string
+          enum: [student, teacher, alumni, guest]
+        school:
+          type: string
+        major:
+          type: string
+        bio:
+          type: string
+        level:
+          type: integer
+        xp:
+          type: integer
+        is_following:
+          type: boolean
+          description: Whether current user follows this user
+
+    # Achievement Schemas
+    UserAchievement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        badge:
+          $ref: '#/components/schemas/Badge'
+        earned_at:
+          type: string
+          format: date-time
+        progress:
+          type: object
+          properties:
+            current:
+              type: integer
+            required:
+              type: integer
+            percentage:
+              type: number
+              format: float
+
+    Badge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        icon_url:
+          type: string
+          format: uri
+        rarity:
+          type: string
+          enum: [common, rare, epic, legendary]
+        category:
+          type: string
+          enum: [learning, social, achievement, skill, milestone]
+        points:
+          type: integer
+
+    AchievementStats:
+      type: object
+      properties:
+        total_badges:
+          type: integer
+        earned_badges:
+          type: integer
+        total_points:
+          type: integer
+        rarity_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        category_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+
+    # Level & XP Schemas
+    UserLevel:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        current_level:
+          type: integer
+          example: 5
+        total_xp:
+          type: integer
+          example: 1250
+        xp_to_next_level:
+          type: integer
+          example: 250
+        level_progress_percentage:
+          type: number
+          format: float
+          example: 75.5
+        next_level_rewards:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              name:
+                type: string
+        rank:
+          type: integer
+          description: Global rank
+          example: 42
+
+    # Leaderboard Schemas
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        score:
+          type: integer
+        change:
+          type: integer
+          description: Rank change from previous period
+
+    # Social Schemas
+    FeedItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [post, achievement, skill_update, course_completion, certification]
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        content:
+          type: object
+          description: Type-specific content
+        created_at:
+          type: string
+          format: date-time
+        likes_count:
+          type: integer
+        comments_count:
+          type: integer
+        is_liked:
+          type: boolean
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        content:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [image, video, link, file]
+              url:
+                type: string
+                format: uri
+              metadata:
+                type: object
+        visibility:
+          type: string
+          enum: [public, followers, private]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        likes_count:
+          type: integer
+        comments_count:
+          type: integer
+        shares_count:
+          type: integer
+        is_liked:
+          type: boolean
+
+    CreatePostRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        attachments:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - type
+              - url
+            properties:
+              type:
+                type: string
+                enum: [image, video, link, file]
+              url:
+                type: string
+                format: uri
+        visibility:
+          type: string
+          enum: [public, followers, private]
+          default: public
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        post_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        content:
+          type: string
+        parent_comment_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        likes_count:
+          type: integer
+        is_liked:
+          type: boolean
+
+    # Learning Path Schemas
+    LearningPath:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        thumbnail_url:
+          type: string
+          format: uri
+        difficulty_level:
+          type: string
+          enum: [beginner, intermediate, advanced, expert]
+        duration:
+          type: string
+          description: Estimated completion time
+        skills_covered:
+          type: array
+          items:
+            type: string
+        total_steps:
+          type: integer
+        enrollment_count:
+          type: integer
+        rating:
+          type: number
+          format: float
+        is_enrolled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    LearningPathDetails:
+      allOf:
+        - $ref: '#/components/schemas/LearningPath'
+        - type: object
+          properties:
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  order:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  type:
+                    type: string
+                    enum: [lesson, quiz, project, assessment, reading]
+                  estimated_time:
+                    type: string
+                  resources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        type:
+                          type: string
+                  prerequisites:
+                    type: array
+                    items:
+                      type: string
+            instructor:
+              $ref: '#/components/schemas/UserProfile'
+            reviews:
+              type: array
+              items:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+                  rating:
+                    type: integer
+                    minimum: 1
+                    maximum: 5
+                  comment:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+
+    LearningPathProgress:
+      type: object
+      properties:
+        enrollment_id:
+          type: string
+          format: uuid
+        path:
+          $ref: '#/components/schemas/LearningPath'
+        enrolled_at:
+          type: string
+          format: date-time
+        last_accessed:
+          type: string
+          format: date-time
+        completion_percentage:
+          type: number
+          format: float
+        completed_steps:
+          type: integer
+        total_steps:
+          type: integer
+        time_spent:
+          type: integer
+          description: Total time spent in minutes
+        estimated_completion_date:
+          type: string
+          format: date
+        step_progress:
+          type: array
+          items:
+            type: object
+            properties:
+              step_id:
+                type: string
+                format: uuid
+              status:
+                type: string
+                enum: [not_started, in_progress, completed, skipped]
+              completion_percentage:
+                type: integer
+              time_spent:
+                type: integer
+              last_accessed:
+                type: string
+                format: date-time
+
+    # Certification Schemas
+    Certification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        skill:
+          $ref: '#/components/schemas/Skill'
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced, expert]
+        status:
+          type: string
+          enum: [pending, under_review, approved, rejected, expired]
+        issued_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        verification_url:
+          type: string
+          format: uri
+        certificate_number:
+          type: string
+        verified_by:
+          $ref: '#/components/schemas/UserProfile'
+        evidence:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              url:
+                type: string
+                format: uri
+              description:
+                type: string
+
+    # Skill Schemas
+    Skill:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        difficulty_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        market_demand:
+          type: number
+          format: float
+        prerequisites:
+          type: array
+          items:
+            type: string
+        learning_resources:
+          type: array
+          items:
+            type: string
+        estimated_learning_time:
+          type: integer
+          description: Hours
+
+    UserSkillDetails:
+      type: object
+      properties:
+        skill:
+          $ref: '#/components/schemas/Skill'
+        level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        score:
+          type: number
+          format: float
+        verified:
+          type: boolean
+        last_practiced:
+          type: string
+          format: date-time
+        practice_count:
+          type: integer
+        certifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certification'
+
+    SkillGraph:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              skill_id:
+                type: string
+              x:
+                type: number
+              y:
+                type: number
+              status:
+                type: string
+                enum: [locked, unlocked, in_progress, completed, expert]
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              target:
+                type: string
+              type:
+                type: string
+                enum: [prerequisite, progression, related]
+
+    SkillStats:
+      type: object
+      properties:
+        total_skills:
+          type: integer
+        mastered_skills:
+          type: integer
+        in_progress_skills:
+          type: integer
+        average_score:
+          type: number
+          format: float
+        category_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        skill_velocity:
+          type: number
+          description: Skills learned per month
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INVALID_REQUEST"
+            message:
+              type: string
+              example: "The request contains invalid parameters"
+            details:
+              type: object
+              description: Additional error details
+            timestamp:
+              type: string
+              format: date-time
+
+  responses:
+    BadRequestError:
+      description: Bad request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: "INVALID_REQUEST"
+              message: "Invalid request parameters"
+              timestamp: "2025-11-12T10:30:00Z"
+
+    UnauthorizedError:
+      description: Unauthorized - Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication required"
+              timestamp: "2025-11-12T10:30:00Z"
+
+    ForbiddenError:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: "FORBIDDEN"
+              message: "You don't have permission to perform this action"
+              timestamp: "2025-11-12T10:30:00Z"
+
+    NotFoundError:
+      description: Not found - Resource doesn't exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+              timestamp: "2025-11-12T10:30:00Z"
+
+    RateLimitError:
+      description: Too many requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: "RATE_LIMIT_EXCEEDED"
+              message: "Too many requests. Please try again later."
+              details:
+                retry_after: 60
+              timestamp: "2025-11-12T10:30:00Z"
+
+  examples:
+    AchievementsResponse:
+      value:
+        success: true
+        data:
+          achievements:
+            - id: "550e8400-e29b-41d4-a716-446655440000"
+              badge:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                name: "JavaScript Master"
+                description: "Completed 10 JavaScript courses"
+                icon_url: "https://cdn.evolvplatform.com/badges/js-master.png"
+                rarity: "epic"
+                category: "skill"
+                points: 500
+              earned_at: "2025-10-15T14:30:00Z"
+              progress:
+                current: 10
+                required: 10
+                percentage: 100
+          stats:
+            total_badges: 50
+            earned_badges: 12
+            total_points: 2500
+            rarity_distribution:
+              common: 5
+              rare: 4
+              epic: 2
+              legendary: 1
+            category_distribution:
+              learning: 4
+              social: 2
+              skill: 3
+              achievement: 2
+              milestone: 1
+          pagination:
+            page: 1
+            limit: 20
+            total: 12
+            total_pages: 1
+            has_next: false
+            has_prev: false
+
+    UserLevelResponse:
+      value:
+        success: true
+        data:
+          user_id: "550e8400-e29b-41d4-a716-446655440000"
+          current_level: 5
+          total_xp: 1250
+          xp_to_next_level: 250
+          level_progress_percentage: 83.3
+          next_level_rewards:
+            - type: "feature_unlock"
+              name: "Advanced Analytics Dashboard"
+            - type: "badge"
+              name: "Rising Star"
+          rank: 42
+
+    CareerAssessmentResponse:
+      value:
+        success: true
+        data:
+          assessment_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          career_paths:
+            - title: "Full Stack Developer"
+              match_score: 87.5
+              description: "Build complete web applications from front to back"
+              required_skills:
+                - "JavaScript"
+                - "React"
+                - "Node.js"
+                - "SQL"
+              skill_gap:
+                - "Docker"
+                - "GraphQL"
+                - "Redis"
+              salary_range:
+                min: 80000
+                max: 140000
+                currency: "USD"
+              time_to_ready: "6-9 months"
+              growth_outlook: "excellent"
+          strengths:
+            - "Strong foundation in web development"
+            - "Good problem-solving skills"
+            - "Quick learner"
+          areas_for_improvement:
+            - "System design knowledge"
+            - "Advanced database optimization"
+            - "DevOps practices"
+          recommended_next_steps:
+            - step: "Complete a Docker certification course"
+              priority: "high"
+              estimated_duration: "2 weeks"
+            - step: "Build a full-stack project with microservices"
+              priority: "high"
+              estimated_duration: "1 month"
+          market_insights:
+            trending_skills:
+              - "Kubernetes"
+              - "TypeScript"
+              - "GraphQL"
+            emerging_technologies:
+              - "WebAssembly"
+              - "Edge Computing"
+            demand_forecast: "High demand expected to continue for 5+ years"
+          generated_at: "2025-11-12T10:30:00Z"

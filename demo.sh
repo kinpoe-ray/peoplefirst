@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# 技能测评模块演示脚本
+
+echo "🎯 技能测评模块（闯关模式）演示"
+echo "================================="
+echo ""
+
+echo "📋 模块功能概览："
+echo "1. ✅ 测评题目数据结构和题目库（覆盖5大技能领域）"
+echo "2. ✅ 测评界面组件（Assessment.tsx）- 支持单选、多选、填空题型"
+echo "3. ✅ 测评结果计算逻辑（智能评分算法）"
+echo "4. ✅ 测评进度跟踪和计时功能（15分钟限时挑战）"
+echo "5. ✅ 测评数据存储功能（完整的数据库设计）"
+echo "6. ✅ 技能评估算法（专家/高级/中级/入门四级评估）"
+echo ""
+
+echo "🎮 闯关模式特色："
+echo "• 三关递进挑战，难度递增"
+echo "• 实时倒计时和进度跟踪"
+echo "• 星级评价系统"
+echo "• 技能认证徽章奖励"
+echo "• 个性化能力分析报告"
+echo ""
+
+echo "🏆 覆盖的专业领域："
+echo "技术技能：前端开发、后端开发、数据库管理、DevOps、网络安全"
+echo "运营技能：内容运营、数据运营、用户运营、社群运营"
+echo "产品技能：产品设计、产品分析、产品运营、商业模式"
+echo "数据技能：数据分析"
+echo "营销技能：数字营销"
+echo ""
+
+echo "🛠️ 技术实现："
+echo "• React + TypeScript + Tailwind CSS"
+echo "• Supabase + PostgreSQL 数据库"
+echo "• 响应式设计，支持桌面和移动设备"
+echo "• 完整的错误处理和用户反馈"
+echo ""
+
+echo "📊 数据库统计："
+echo "• 技能表：14个专业技能"
+echo "• 题目库：50+道精心设计的题目"
+echo "• 支持4种题型（单选、多选、填空、编程）"
+echo "• 5级难度系统（★到★★★★★）"
+echo ""
+
+echo "🎯 使用路径："
+echo "1. 登录系统 → 技能健身房 → 闯关挑战模式"
+echo "2. 选择技能领域（如：前端开发）"
+echo "3. 开始三关挑战："
+echo "   关卡1：基础题目（★-★★）"
+echo "   关卡2：进阶题目（★★★-★★★★）"
+echo "   关卡3：高级题目（★★★★★）"
+echo "4. 完成挑战获得技能认证徽章"
+echo ""
+
+echo "💡 教育价值："
+echo "• 每道题目都有详细答案解释"
+echo "• 智能分析用户强项和改进点"
+echo "• 提供个性化学习建议"
+echo "• 支持重复挑战提升技能"
+echo ""
+
+echo "🚀 启动演示："
+echo "在浏览器中访问：http://localhost:5173/challenge"
+echo ""
+
+echo "📝 开发文件列表："
+echo "• src/components/Assessment.tsx - 核心测评组件"
+echo "• src/pages/ChallengeMode.tsx - 挑战模式页面"
+echo "• src/data/questionBank.ts - 题目库数据"
+echo "• supabase/migrations/ - 数据库迁移脚本"
+echo "• ASSESSMENT_MODULE_README.md - 详细文档"
+echo ""
+
+echo "✨ 模块开发完成！开始享受有趣的技能挑战之旅吧！"

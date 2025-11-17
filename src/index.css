@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --background: 220 20% 3%;
+    --foreground: 0 0% 100%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 10% 60%;
+    --popover: 220 20% 5%;
+    --popover-foreground: 0 0% 100%;
+    --card: 220 20% 5%;
+    --card-foreground: 0 0% 100%;
+    --border: 220 15% 12%;
+    --input: 220 15% 12%;
+    --primary: 207 90% 61%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 207 15% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 27 96% 61%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 207 90% 61%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-dark-bg text-white antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  }
+
+  /* Typography */
+  .text-display {
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
+
+  .text-h1 {
+    font-size: 20px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .text-body {
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .text-caption {
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .text-small {
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0D0D0D;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1A1A1A;
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2A2A2A;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    outline: 2px solid theme('colors.pathBlue.DEFAULT');
+    outline-offset: 2px;
+  }
+
+  /* Selection styles */
+  ::selection {
+    background-color: theme('colors.pathBlue.DEFAULT');
+    color: white;
+  }
+}
+
+@layer utilities {
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-pathBlue to-warmOrange bg-clip-text text-transparent;
+  }
+
+  /* Glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
