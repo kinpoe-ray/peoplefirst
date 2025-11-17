@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from './logger';
+
+const logger = createLogger('Supabase');
 
 // 使用环境变量
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -6,29 +9,38 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // 验证环境变量
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('\n=================================================================');
-  console.error('❌ CRITICAL ERROR: Missing Supabase Configuration');
-  console.error('=================================================================');
-  console.error('The application cannot start without proper Supabase credentials.');
-  console.error('\nMissing environment variables:');
-  if (!supabaseUrl) {
-    console.error('  ❌ VITE_SUPABASE_URL is not set');
-  }
-  if (!supabaseAnonKey) {
-    console.error('  ❌ VITE_SUPABASE_ANON_KEY is not set');
-  }
-  console.error('\n📋 Setup Instructions:');
-  console.error('  1. Copy the template file:');
-  console.error('     cp .env.example .env');
-  console.error('\n  2. Get your Supabase credentials:');
-  console.error('     → Visit: https://supabase.com/dashboard');
-  console.error('     → Navigate to: Settings > API');
-  console.error('     → Copy: Project URL and anon/public key');
-  console.error('\n  3. Update your .env file with actual values:');
-  console.error('     VITE_SUPABASE_URL=https://xxxxx.supabase.co');
-  console.error('     VITE_SUPABASE_ANON_KEY=eyJhbGc...your-key-here');
-  console.error('\n  4. Restart your development server');
-  console.error('=================================================================\n');
+  const errorMessage = `
+=================================================================
+CRITICAL ERROR: Missing Supabase Configuration
+=================================================================
+The application cannot start without proper Supabase credentials.
+
+Missing environment variables:
+${!supabaseUrl ? '  - VITE_SUPABASE_URL is not set' : ''}
+${!supabaseAnonKey ? '  - VITE_SUPABASE_ANON_KEY is not set' : ''}
+
+Setup Instructions:
+  1. Copy the template file:
+     cp .env.example .env
+
+  2. Get your Supabase credentials:
+     Visit: https://supabase.com/dashboard
+     Navigate to: Settings > API
+     Copy: Project URL and anon/public key
+
+  3. Update your .env file with actual values:
+     VITE_SUPABASE_URL=https://xxxxx.supabase.co
+     VITE_SUPABASE_ANON_KEY=eyJhbGc...your-key-here
+
+  4. Restart your development server
+=================================================================
+`;
+
+  logger.error('Missing Supabase configuration', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    message: errorMessage
+  });
 
   throw new Error('Supabase configuration missing. Please check the console for setup instructions.');
 }
@@ -171,7 +183,7 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
     .maybeSingle();
 
   if (error) {
-    console.error('获取用户资料失败:', error);
+    logger.error('获取用户资料失败', error);
     return null;
   }
 
@@ -191,7 +203,7 @@ export const updateProfile = async (
     .eq('id', userId);
 
   if (error) {
-    console.error('更新用户资料失败:', error);
+    logger.error('更新用户资料失败', error);
     return { success: false, error: error.message };
   }
 

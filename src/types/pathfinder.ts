@@ -33,7 +33,7 @@ export interface SkillRadar {
   logic: number;
   communication: number;
   stress_resistance: number;
-  learning: number;
+  learning_ability: number;
 }
 
 export interface Content {

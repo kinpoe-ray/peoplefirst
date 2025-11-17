@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase, type Profile } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('AuthContext');
 
 type GuestProfile = {
   id: string;
@@ -53,11 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 创建游客用户
-  async function createGuestUser() {
+  const createGuestUser = useCallback(async () => {
     try {
       const guestToken = generateGuestToken();
       const guestId = generateGuestId();
-      
+
       const guestProfile: GuestProfile = {
         id: guestId,
         user_type: 'guest',
@@ -71,11 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 只保存到本地存储，不依赖数据库
       localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(guestProfile));
       localStorage.setItem(GUEST_TOKEN_KEY, guestToken);
-      
+
       setProfile(guestProfile);
-      console.log('游客用户创建成功:', guestProfile);
+      logger.debug('游客用户创建成功', guestProfile);
     } catch (error) {
-      console.error('创建游客用户时发生错误:', error);
+      logger.error('创建游客用户时发生错误', error);
       // 即使出错也要创建本地游客用户
       const fallbackGuestProfile: GuestProfile = {
         id: 'guest_fallback',
@@ -88,27 +91,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       setProfile(fallbackGuestProfile);
     }
-  }
+  }, []);
 
   // 加载游客用户
-  async function loadGuestUser() {
+  const loadGuestUser = useCallback(async () => {
     const savedProfile = localStorage.getItem(GUEST_PROFILE_KEY);
     const savedToken = localStorage.getItem(GUEST_TOKEN_KEY);
-    
+
     if (savedProfile && savedToken) {
       try {
         const guestProfile = JSON.parse(savedProfile);
         setProfile(guestProfile as GuestProfile);
-        console.log('游客用户加载成功:', guestProfile);
+        logger.debug('游客用户加载成功', guestProfile);
       } catch (error) {
-        console.error('加载游客用户失败:', error);
+        logger.error('加载游客用户失败', error);
         await createGuestUser();
       }
     } else {
       // 没有游客信息，创建新的游客用户
       await createGuestUser();
     }
-  }
+  }, [createGuestUser]);
+
+  const loadProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      setProfile(data as Profile);
+    }
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -122,30 +137,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const authPromise = supabase.auth.getUser();
 
         try {
-          const { data: { user }, error } = await Promise.race([
+          const { data: { user: authUser }, error } = await Promise.race([
             authPromise,
             timeoutPromise
-          ]) as any;
+          ]) as Awaited<ReturnType<typeof supabase.auth.getUser>>;
 
           if (error) {
-            console.warn('Auth error, using guest mode:', error);
+            logger.warn('Auth error, using guest mode', error);
             await loadGuestUser();
             return;
           }
 
-          setUser(user);
+          setUser(authUser);
 
-          if (user) {
-            await loadProfile(user.id);
+          if (authUser) {
+            await loadProfile(authUser.id);
           } else {
             await loadGuestUser();
           }
         } catch (timeoutError) {
-          console.warn('Auth timeout, using guest mode');
+          logger.warn('Auth timeout, using guest mode');
           await loadGuestUser();
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        logger.error('Auth initialization error', error);
         await loadGuestUser();
       } finally {
         setLoading(false);
@@ -165,21 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadGuestUser, loadProfile]);
 
-  async function loadProfile(userId: string) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (!error && data) {
-      setProfile(data as Profile);
-    }
-  }
-
-  async function refreshProfile() {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await loadProfile(user.id);
     } else if (profile && 'guest_token' in profile) {
@@ -190,11 +193,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const guestProfile = JSON.parse(savedProfile);
           setProfile(guestProfile as GuestProfile);
         } catch (error) {
-          console.error('刷新游客用户资料失败:', error);
+          logger.error('刷新游客用户资料失败', error);
         }
       }
     }
-  }
+  }, [user, profile, loadProfile]);
 
   async function signIn(email: string, password: string) {
     const result = await supabase.auth.signInWithPassword({ email, password });
@@ -306,18 +309,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return { data: authData, success: true };
     } catch (error) {
-      console.error('数据迁移失败:', error);
+      logger.error('数据迁移失败', error);
       return { error: error as Error };
     }
   }
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem(GUEST_PROFILE_KEY);
     localStorage.removeItem(GUEST_TOKEN_KEY);
     await createGuestUser();
-  }
+  }, [createGuestUser]);
 
   const isGuest = profile ? 'guest_token' in profile : false;
   const isAuthenticated = !!user || isGuest;

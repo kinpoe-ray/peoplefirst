@@ -7,11 +7,15 @@
  * 2. 或在代码中通过环境变量注入
  */
 
+import { createLogger } from './logger';
+
+const logger = createLogger('GrokAI');
+
 const GROK_API_KEY = import.meta.env.VITE_GROK_API_KEY || '';
 const GROK_API_BASE_URL = 'https://api.x.ai/v1';
 
 if (!GROK_API_KEY) {
-  console.warn('⚠️  VITE_GROK_API_KEY 未设置，AI 功能将不可用');
+  logger.warn('VITE_GROK_API_KEY 未设置，AI 功能将不可用');
 }
 
 export interface GrokMessage {
@@ -150,7 +154,7 @@ async function callGrokCompletion(
 
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('Grok API 调用失败:', error);
+    logger.error('Grok API 调用失败', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`AI 服务暂时不可用: ${errorMessage}`);
   }
@@ -218,7 +222,7 @@ ${input.workExperience ? `**工作经验**: ${input.workExperience}年` : ''}
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanedResponse);
   } catch (error) {
-    console.error('解析 AI 响应失败:', error, response);
+    logger.error('解析 AI 响应失败', { error, response });
     throw new Error('AI 返回格式错误，请重试');
   }
 }
@@ -274,7 +278,7 @@ ${input.learningStyle ? `**学习偏好**: ${input.learningStyle}` : ''}
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanedResponse);
   } catch (error) {
-    console.error('解析 AI 响应失败:', error);
+    logger.error('解析 AI 技能推荐响应失败', error);
     throw new Error('AI 返回格式错误，请重试');
   }
 }
@@ -341,7 +345,7 @@ ${input.preferredLearningStyle ? `**学习偏好**: ${input.preferredLearningSty
     const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanedResponse);
   } catch (error) {
-    console.error('解析 AI 响应失败:', error);
+    logger.error('解析 AI 学习路径响应失败', error);
     throw new Error('AI 返回格式错误，请重试');
   }
 }
@@ -390,7 +394,7 @@ export async function checkGrokAPIHealth(): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    console.error('Grok API 健康检查失败:', error);
+    logger.error('Grok API 健康检查失败', error);
     return false;
   }
 }

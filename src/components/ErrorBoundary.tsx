@@ -1,6 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { toast } from 'sonner';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('ErrorBoundary');
 
 interface Props {
   children: ReactNode;
@@ -31,7 +34,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', { error, errorInfo });
     this.setState({
       error,
       errorInfo,
@@ -57,7 +60,7 @@ class ErrorBoundary extends Component<Props, State> {
       url: window.location.href,
     };
 
-    console.log('Error Report:', errorReport);
+    logger.info('Error report generated', errorReport);
     toast.success('错误已记录。我们会尽快处理此问题。', {
       duration: 4000,
     });

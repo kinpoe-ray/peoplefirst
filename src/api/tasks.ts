@@ -1,11 +1,39 @@
 import { supabase } from '../lib/supabase';
 import { Task, UserTaskAttempt, TaskDifficulty, TaskSubmissionContent } from '../types/pathfinder';
 
-export async function getTasks(difficulty?: TaskDifficulty): Promise<Task[]> {
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function getTasks(
+  difficulty?: TaskDifficulty,
+  page: number = 1,
+  pageSize: number = 12
+): Promise<PaginatedResponse<Task>> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // First get total count
+  let countQuery = supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true });
+
+  if (difficulty) {
+    countQuery = countQuery.eq('difficulty', difficulty);
+  }
+
+  const { count } = await countQuery;
+
+  // Then get paginated data
   let query = supabase
     .from('tasks')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (difficulty) {
     query = query.eq('difficulty', difficulty);
@@ -14,7 +42,17 @@ export async function getTasks(difficulty?: TaskDifficulty): Promise<Task[]> {
   const { data, error } = await query;
 
   if (error) throw error;
-  return data || [];
+
+  const total = count || 0;
+  const totalPages = Math.ceil(total / pageSize);
+
+  return {
+    data: data || [],
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function getTaskById(id: string): Promise<Task> {

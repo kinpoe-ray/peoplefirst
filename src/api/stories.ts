@@ -1,7 +1,28 @@
 import { supabase } from '../lib/supabase';
 import { Story, StoryFormData } from '../types/pathfinder';
 
-export async function getStories(): Promise<Story[]> {
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function getStories(
+  page: number = 1,
+  pageSize: number = 12
+): Promise<PaginatedResponse<Story>> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // First get total count
+  const { count } = await supabase
+    .from('stories')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_public', true);
+
+  // Then get paginated data
   const { data, error } = await supabase
     .from('stories')
     .select(`
@@ -9,10 +30,21 @@ export async function getStories(): Promise<Story[]> {
       author:users(id, username, avatar_url)
     `)
     .eq('is_public', true)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) throw error;
-  return data || [];
+
+  const total = count || 0;
+  const totalPages = Math.ceil(total / pageSize);
+
+  return {
+    data: data || [],
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function getStoryById(id: string): Promise<Story> {

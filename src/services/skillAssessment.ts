@@ -2,10 +2,13 @@
 // 由其他Agent负责实现
 
 import { SkillAssessmentRequest, SkillAssessmentResult } from '../types';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('SkillAssessment');
 
 export const skillAssessmentService = {
   assessSkill: async (request: SkillAssessmentRequest): Promise<SkillAssessmentResult> => {
-    console.log('Skill assessment - to be implemented', request);
+    logger.debug('Skill assessment - to be implemented', { request });
 
     // 返回模拟数据
     return {

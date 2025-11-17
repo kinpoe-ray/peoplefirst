@@ -9,6 +9,9 @@ import { UserTaskAttempt } from '../types/pathfinder';
 import { supabase } from '../lib/supabase';
 import { toastSuccess, toastError } from '../components/Toast';
 import { Skeleton, SkeletonProfile } from '../components/Skeleton';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('Profile');
 
 type TabType = 'overview' | 'edit' | 'tasks' | 'favorites';
 
@@ -55,7 +58,7 @@ export default function Profile() {
       const attempts = await getUserAttempts();
       setTaskAttempts(attempts);
     } catch (error) {
-      console.error('Failed to load task attempts:', error);
+      logger.error('Failed to load task attempts', error);
     } finally {
       setIsLoadingTasks(false);
     }
@@ -71,7 +74,7 @@ export default function Profile() {
       setFavoriteContents(contents);
       setFavoriteStories(stories);
     } catch (error) {
-      console.error('Failed to load favorites:', error);
+      logger.error('Failed to load favorites', error);
     } finally {
       setIsLoadingFavorites(false);
     }
@@ -91,7 +94,7 @@ export default function Profile() {
       setIsEditing(false);
       toastSuccess('个人资料已更新！');
     } catch (error: any) {
-      console.error('Failed to update profile:', error);
+      logger.error('Failed to update profile', error);
       toastError('更新失败：' + error.message);
     }
   };

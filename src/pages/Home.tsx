@@ -4,6 +4,9 @@ import { BookOpen, Target, MessageSquare, ArrowRight, Compass, Sparkles, Flame, 
 import Layout from '../components/layout/Layout';
 import { supabase } from '../lib/supabase';
 import { DashboardStats } from '../types/pathfinder';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('Home');
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -48,7 +51,7 @@ export default function Home() {
         active_users: users.count || 0,
       });
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      logger.error('Failed to load stats', error);
     }
   };
 

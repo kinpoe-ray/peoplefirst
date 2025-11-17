@@ -9,6 +9,9 @@ import { getComments, addComment } from '../api/stories';
 import { Comment } from '../types/pathfinder';
 import { toastError, toastSuccess } from '../components/Toast';
 import { SkeletonDetail } from '../components/Skeleton';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('StoryDetail');
 
 export default function StoryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +39,7 @@ export default function StoryDetail() {
         const data = await getComments(id);
         setComments(data);
       } catch (error) {
-        console.error('Failed to load comments:', error);
+        logger.error('Failed to load comments', error);
       }
     }
   }
@@ -50,7 +53,7 @@ export default function StoryDetail() {
       setNewComment('');
       await loadComments();
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      logger.error('Failed to add comment', error);
       toastError('评论失败，请重试');
     } finally {
       setIsSubmitting(false);
@@ -63,7 +66,7 @@ export default function StoryDetail() {
       await toggleLike(id);
       // Store handles refetch for accurate count
     } catch (error) {
-      console.error('Failed to toggle like:', error);
+      logger.error('Failed to toggle like', error);
       toastError('点赞失败，请重试');
     }
   }
@@ -74,7 +77,7 @@ export default function StoryDetail() {
       await toggleFavorite(id);
       // Store handles refetch for accurate count
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      logger.error('Failed to toggle favorite', error);
       toastError('收藏失败，请重试');
     }
   }

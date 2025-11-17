@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import { User } from '../types/pathfinder';
 import { supabase } from '../lib/supabase';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('AuthStore');
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  isGuest: boolean;
+  guestData: GuestData | null;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -14,14 +19,67 @@ interface AuthState {
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  enterGuestMode: () => void;
+  exitGuestMode: () => void;
 }
+
+interface GuestData {
+  id: string;
+  created_at: string;
+  guest_token: string;
+}
+
+const GUEST_STORAGE_KEY = 'evolv_guest_data';
+
+// Helper function to generate guest token
+const generateGuestToken = () => {
+  return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 11)}`;
+};
+
+// Helper function to generate guest ID
+const generateGuestId = () => {
+  return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Load guest data from localStorage
+const loadGuestData = (): GuestData | null => {
+  try {
+    const saved = localStorage.getItem(GUEST_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    logger.error('Failed to load guest data', error);
+  }
+  return null;
+};
+
+// Save guest data to localStorage
+const saveGuestData = (data: GuestData) => {
+  try {
+    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    logger.error('Failed to save guest data', error);
+  }
+};
+
+// Remove guest data from localStorage
+const removeGuestData = () => {
+  try {
+    localStorage.removeItem(GUEST_STORAGE_KEY);
+  } catch (error) {
+    logger.error('Failed to remove guest data', error);
+  }
+};
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: true,
   error: null,
+  isGuest: false,
+  guestData: null,
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => set({ user, isGuest: false, guestData: null }),
 
   updateUser: async (userData) => {
     try {
@@ -114,7 +172,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     try {
       await supabase.auth.signOut();
-      set({ user: null });
+      removeGuestData();
+      set({ user: null, isGuest: false, guestData: null });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
       set({ error: errorMessage });
@@ -134,13 +193,42 @@ export const useAuthStore = create<AuthState>((set) => ({
           .eq('id', user.id)
           .single();
 
-        set({ user: profile, isLoading: false });
+        removeGuestData(); // Clear any guest data when authenticated
+        set({ user: profile, isLoading: false, isGuest: false, guestData: null });
       } else {
-        set({ user: null, isLoading: false });
+        // Check for existing guest session
+        const savedGuestData = loadGuestData();
+        if (savedGuestData) {
+          set({
+            user: null,
+            isLoading: false,
+            isGuest: true,
+            guestData: savedGuestData
+          });
+        } else {
+          set({ user: null, isLoading: false, isGuest: false, guestData: null });
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Auth check failed';
       set({ error: errorMessage, isLoading: false });
     }
+  },
+
+  enterGuestMode: () => {
+    const guestData: GuestData = {
+      id: generateGuestId(),
+      created_at: new Date().toISOString(),
+      guest_token: generateGuestToken(),
+    };
+    saveGuestData(guestData);
+    set({ isGuest: true, guestData, user: null, isLoading: false });
+    logger.debug('Guest mode activated', guestData);
+  },
+
+  exitGuestMode: () => {
+    removeGuestData();
+    set({ isGuest: false, guestData: null });
+    logger.debug('Guest mode deactivated');
   },
 }));

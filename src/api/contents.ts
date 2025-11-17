@@ -1,14 +1,42 @@
 import { supabase } from '../lib/supabase';
 import { Content, CareerCategory } from '../types/pathfinder';
 
-export async function getContents(category?: CareerCategory): Promise<Content[]> {
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function getContents(
+  category?: CareerCategory,
+  page: number = 1,
+  pageSize: number = 12
+): Promise<PaginatedResponse<Content>> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // First get total count
+  let countQuery = supabase
+    .from('contents')
+    .select('*', { count: 'exact', head: true });
+
+  if (category && category !== '全部') {
+    countQuery = countQuery.eq('category', category);
+  }
+
+  const { count } = await countQuery;
+
+  // Then get paginated data
   let query = supabase
     .from('contents')
     .select(`
       *,
       author:users(id, username, avatar_url)
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (category && category !== '全部') {
     query = query.eq('category', category);
@@ -17,7 +45,17 @@ export async function getContents(category?: CareerCategory): Promise<Content[]>
   const { data, error } = await query;
 
   if (error) throw error;
-  return data || [];
+
+  const total = count || 0;
+  const totalPages = Math.ceil(total / pageSize);
+
+  return {
+    data: data || [],
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function getContentById(id: string): Promise<Content> {

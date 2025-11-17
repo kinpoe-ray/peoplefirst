@@ -1,16 +1,28 @@
 import { create } from 'zustand';
 import { Story, StoryFormData } from '../types/pathfinder';
 import * as storiesApi from '../api/stories';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('StoryStore');
+
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  pageSize: number;
+}
 
 interface StoryState {
   stories: Story[];
   currentStory: Story | null;
+  pagination: PaginationState;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchStories: () => Promise<void>;
+  fetchStories: (page?: number) => Promise<void>;
   fetchStoryById: (id: string) => Promise<void>;
+  setCurrentPage: (page: number) => void;
   createStory: (data: StoryFormData) => Promise<Story>;
   updateStory: (id: string, data: Partial<StoryFormData>) => Promise<void>;
   deleteStory: (id: string) => Promise<void>;
@@ -21,14 +33,29 @@ interface StoryState {
 export const useStoryStore = create<StoryState>((set, get) => ({
   stories: [],
   currentStory: null,
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    pageSize: 12,
+  },
   isLoading: false,
   error: null,
 
-  fetchStories: async () => {
+  fetchStories: async (page = 1) => {
     try {
       set({ isLoading: true, error: null });
-      const data = await storiesApi.getStories();
-      set({ stories: data, isLoading: false });
+      const response = await storiesApi.getStories(page, 12);
+      set({
+        stories: response.data,
+        pagination: {
+          currentPage: response.page,
+          totalPages: response.totalPages,
+          total: response.total,
+          pageSize: response.pageSize,
+        },
+        isLoading: false,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stories';
       set({ error: errorMessage, isLoading: false });
@@ -44,6 +71,10 @@ export const useStoryStore = create<StoryState>((set, get) => ({
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch story';
       set({ error: errorMessage, isLoading: false });
     }
+  },
+
+  setCurrentPage: (page) => {
+    get().fetchStories(page);
   },
 
   createStory: async (data) => {
@@ -115,7 +146,7 @@ export const useStoryStore = create<StoryState>((set, get) => ({
       await get().fetchStoryById(id);
     } catch (error) {
       // Rollback on error
-      console.error('Failed to toggle like:', error instanceof Error ? error.message : error);
+      logger.error('Failed to toggle like', error);
       set({
         currentStory: {
           ...story,
@@ -135,7 +166,7 @@ export const useStoryStore = create<StoryState>((set, get) => ({
       // Fetch updated story to get accurate count
       await get().fetchStoryById(id);
     } catch (error) {
-      console.error('Failed to toggle favorite:', error instanceof Error ? error.message : error);
+      logger.error('Failed to toggle favorite', error);
       // Refetch to ensure consistency
       await get().fetchStoryById(id);
     }

@@ -17,6 +17,8 @@ import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import { useAuthStore } from './stores/authStore';
+import ProtectedRoute from './components/ProtectedRoute';
+import GuestOnlyRoute from './components/GuestOnlyRoute';
 
 function App() {
   const { checkAuth } = useAuthStore();
@@ -41,20 +43,59 @@ function App() {
           }}
         />
         <Routes>
-          {/* Public Routes */}
+          {/* Public Routes - accessible to everyone including guests */}
           <Route path="/" element={<Home />} />
           <Route path="/contents" element={<ContentList />} />
           <Route path="/contents/:id" element={<ContentDetail />} />
           <Route path="/tasks" element={<TaskList />} />
-          <Route path="/tasks/:id/execute" element={<TaskExecution />} />
           <Route path="/stories" element={<StoryWall />} />
           <Route path="/stories/:id" element={<StoryDetail />} />
-          <Route path="/stories/create" element={<StoryCreate />} />
-          <Route path="/profile" element={<Profile />} />
 
-          {/* Auth Routes */}
-          <Route path="/signin" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          {/* Protected Routes - require authentication (guests allowed) */}
+          <Route
+            path="/tasks/:id/execute"
+            element={
+              <ProtectedRoute>
+                <TaskExecution />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Strictly Protected Routes - require full authentication (no guests) */}
+          <Route
+            path="/stories/create"
+            element={
+              <ProtectedRoute requireAuth>
+                <StoryCreate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute requireAuth>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Guest Only Routes - redirect authenticated users away */}
+          <Route
+            path="/signin"
+            element={
+              <GuestOnlyRoute>
+                <Login />
+              </GuestOnlyRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <GuestOnlyRoute>
+                <SignUp />
+              </GuestOnlyRoute>
+            }
+          />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>

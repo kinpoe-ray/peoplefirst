@@ -6,6 +6,9 @@ import { useStoryStore } from '../stores/storyStore';
 import { useAuthStore } from '../stores/authStore';
 import { CareerCategory, StoryFormData } from '../types/pathfinder';
 import { toastError, toastWarning, toastSuccess } from '../components/Toast';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('StoryCreate');
 
 const CAREER_CATEGORIES: CareerCategory[] = ['运营', '产品', '设计', '开发', '市场'];
 
@@ -84,7 +87,7 @@ export default function StoryCreate() {
       toastSuccess(isDraft ? '草稿保存成功！' : '故事发布成功！');
       navigate(`/stories/${story.id}`);
     } catch (error) {
-      console.error('Failed to create story:', error);
+      logger.error('Failed to create story', error);
       toastError('发布失败，请重试');
     } finally {
       setIsSubmitting(false);

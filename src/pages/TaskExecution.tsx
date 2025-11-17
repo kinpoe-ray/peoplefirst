@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -12,8 +12,12 @@ import {
 } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { useTaskStore } from '../stores/taskStore';
-import { submitTaskForAIFeedback } from '../api/tasks';
+import { submitTaskForAIFeedback, AIFeedbackResponse } from '../api/tasks';
 import { toastError, toastWarning, toastSuccess } from '../components/Toast';
+import { createLogger } from '../lib/logger';
+import { TaskSubmissionContent } from '../types/pathfinder';
+
+const logger = createLogger('TaskExecution');
 
 export default function TaskExecution() {
   const { id } = useParams<{ id: string }>();
@@ -24,15 +28,19 @@ export default function TaskExecution() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState<any>(null);
+  const [aiFeedback, setAiFeedback] = useState<AIFeedbackResponse | null>(null);
   const [userRating, setUserRating] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
 
-  useEffect(() => {
+  const loadTask = useCallback(() => {
     if (id) {
       fetchTaskById(id);
     }
-  }, [id]);
+  }, [id, fetchTaskById]);
+
+  useEffect(() => {
+    loadTask();
+  }, [loadTask]);
 
   useEffect(() => {
     if (currentAttempt) {
@@ -53,7 +61,7 @@ export default function TaskExecution() {
       await startTask(id);
       setCurrentStep(1);
     } catch (error) {
-      console.error('启动任务失败:', error);
+      logger.error('启动任务失败', error);
       toastError('启动任务失败，请重试');
     } finally {
       setIsStarting(false);
@@ -86,11 +94,20 @@ export default function TaskExecution() {
 
     setIsSubmitting(true);
     try {
+      // 构建符合 TaskSubmissionContent 类型的数据
+      const submissionContent: TaskSubmissionContent = {
+        [String(currentStep)]: {
+          text: formData.answer || '',
+          challenges: formData.challenges || '',
+          feelings: formData.feelings || '',
+        }
+      };
+
       // 保存用户提交内容
-      await updateAttemptStep(currentAttempt.id, currentStep, formData);
+      await updateAttemptStep(currentAttempt.id, currentStep, submissionContent);
 
       // 调用AI反馈接口
-      const feedback = await submitTaskForAIFeedback(currentAttempt.id, formData);
+      const feedback = await submitTaskForAIFeedback(currentAttempt.id, submissionContent);
       setAiFeedback(feedback);
 
       // 进入Step 5
@@ -98,7 +115,7 @@ export default function TaskExecution() {
       setCurrentStep(newStep);
       await updateAttemptStep(currentAttempt.id, newStep);
     } catch (error) {
-      console.error('提交失败:', error);
+      logger.error('提交失败', error);
       toastError('提交失败，请重试');
     } finally {
       setIsSubmitting(false);
@@ -117,7 +134,7 @@ export default function TaskExecution() {
       toastSuccess('任务完成！感谢你的参与');
       navigate('/tasks');
     } catch (error) {
-      console.error('完成任务失败:', error);
+      logger.error('完成任务失败', error);
       toastError('操作失败，请重试');
     } finally {
       setIsCompleting(false);
@@ -403,7 +420,7 @@ export default function TaskExecution() {
                     <div className="bg-dark-bg border border-dark-border rounded-lg p-6">
                       <h3 className="text-lg font-semibold mb-6">能力评分</h3>
                       <div className="space-y-4">
-                        {Object.entries(aiFeedback.skill_scores || {}).map(([key, value]: [string, any]) => {
+                        {Object.entries(aiFeedback.skill_scores || {}).map(([key, value]) => {
                           const labels: Record<string, string> = {
                             creativity: '创造力',
                             logic: '逻辑思维',
@@ -411,17 +428,18 @@ export default function TaskExecution() {
                             stress_resistance: '抗压能力',
                             learning_ability: '学习能力'
                           };
+                          const score = value as number;
 
                           return (
                             <div key={key}>
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium">{labels[key] || key}</span>
-                                <span className="text-pathBlue font-semibold">{value}/10</span>
+                                <span className="text-pathBlue font-semibold">{score}/10</span>
                               </div>
                               <div className="bg-dark-border rounded-full h-2 overflow-hidden">
                                 <div
                                   className="bg-pathBlue h-full transition-all duration-500"
-                                  style={{ width: `${(value / 10) * 100}%` }}
+                                  style={{ width: `${(score / 10) * 100}%` }}
                                 />
                               </div>
                             </div>

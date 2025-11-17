@@ -4,6 +4,9 @@
  */
 
 import { supabase } from './supabase';
+import { createLogger } from './logger';
+
+const logger = createLogger('APIClient');
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3015/api/v1';
 
@@ -26,6 +29,7 @@ export interface ApiResponse<T = unknown> {
 export interface PaginationParams {
   page?: number;
   limit?: number;
+  [key: string]: number | undefined;
 }
 
 export interface Pagination {
@@ -241,6 +245,19 @@ class EvolvAPIClient {
   }
 
   /**
+   * Build query string from params object with proper type safety
+   */
+  private buildQueryString(params: Record<string, unknown>): string {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, String(value));
+      }
+    }
+    return searchParams.toString();
+  }
+
+  /**
    * Get authentication token from Supabase
    */
   private async getAuthToken(): Promise<string | null> {
@@ -281,7 +298,7 @@ class EvolvAPIClient {
 
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      logger.error('API request failed', error);
       throw error;
     }
   }
@@ -309,7 +326,7 @@ class EvolvAPIClient {
     };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/users/${userId}/achievements${query ? `?${query}` : ''}`);
   }
 
@@ -387,7 +404,7 @@ class EvolvAPIClient {
     };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = this.buildQueryString(params);
     return this.request(`/leaderboard?${query}`);
   }
 
@@ -407,7 +424,7 @@ class EvolvAPIClient {
     pagination: Pagination;
     has_new: boolean;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/feed${query ? `?${query}` : ''}`);
   }
 
@@ -444,7 +461,7 @@ class EvolvAPIClient {
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/posts/${postId}/comments${query ? `?${query}` : ''}`);
   }
 
@@ -487,7 +504,7 @@ class EvolvAPIClient {
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/users/${userId}/followers${query ? `?${query}` : ''}`);
   }
 
@@ -502,7 +519,7 @@ class EvolvAPIClient {
     total_count: number;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/users/${userId}/following${query ? `?${query}` : ''}`);
   }
 
@@ -539,7 +556,7 @@ class EvolvAPIClient {
     }>;
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/learning-paths${query ? `?${query}` : ''}`);
   }
 
@@ -667,7 +684,7 @@ class EvolvAPIClient {
     };
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/users/${userId}/certifications${query ? `?${query}` : ''}`);
   }
 
@@ -776,7 +793,7 @@ class EvolvAPIClient {
     categories: string[];
     pagination: Pagination;
   }>> {
-    const query = new URLSearchParams(params as Record<string, string>).toString();
+    const query = params ? this.buildQueryString(params) : '';
     return this.request(`/skills${query ? `?${query}` : ''}`);
   }
 
@@ -865,7 +882,7 @@ export function useLeaderboard(
           setUserRank(response.data.user_rank);
         }
       } catch (err) {
-        console.error('Failed to fetch leaderboard:', err);
+        logger.error('Failed to fetch leaderboard', err);
       } finally {
         setLoading(false);
       }
@@ -892,7 +909,7 @@ export function useFeed(filter: 'all' | 'following' | 'guilds' | 'trending' = 'a
         setPage(page + 1);
       }
     } catch (err) {
-      console.error('Failed to load more feed items:', err);
+      logger.error('Failed to load more feed items', err);
     }
   };
 
@@ -906,7 +923,7 @@ export function useFeed(filter: 'all' | 'following' | 'guilds' | 'trending' = 'a
           setHasMore(response.data.pagination.has_next);
         }
       } catch (err) {
-        console.error('Failed to fetch feed:', err);
+        logger.error('Failed to fetch feed', err);
       } finally {
         setLoading(false);
       }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
@@ -20,6 +20,9 @@ import { toggleFavorite, checkIfFavorited } from '../api/favorites';
 import { Comment } from '../types/pathfinder';
 import { toastError, toastWarning, toastSuccess } from '../components/Toast';
 import { SkeletonDetail } from '../components/Skeleton';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('ContentDetail');
 
 // 情绪到渐变色的映射
 const moodGradients = {
@@ -47,13 +50,27 @@ export default function ContentDetail() {
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      loadContent();
+  const loadComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await getComments(id);
+      setComments(data);
+    } catch (err) {
+      logger.error('Failed to load comments', err);
     }
   }, [id]);
 
-  const loadContent = async () => {
+  const checkFavoriteStatus = useCallback(async () => {
+    if (!id || !user) return;
+    try {
+      const favorited = await checkIfFavorited(id, user.id);
+      setIsFavorited(favorited);
+    } catch (err) {
+      logger.error('Failed to check favorite status', err);
+    }
+  }, [id, user]);
+
+  const loadContent = useCallback(async () => {
     if (!id) return;
 
     try {
@@ -63,37 +80,23 @@ export default function ContentDetail() {
       await loadComments();
       await checkFavoriteStatus();
     } catch (err) {
-      console.error('Failed to load content:', err);
+      logger.error('Failed to load content', err);
       setError('加载内容失败，请重试');
       toastError('加载内容失败');
     }
-  };
+  }, [id, fetchContentById, incrementViewCount, loadComments, checkFavoriteStatus]);
+
+  useEffect(() => {
+    if (id) {
+      loadContent();
+    }
+  }, [id, loadContent]);
 
   useEffect(() => {
     if (currentContent) {
       setFavoriteCount(currentContent.favorite_count || 0);
     }
   }, [currentContent]);
-
-  const checkFavoriteStatus = async () => {
-    if (!id || !user) return;
-    try {
-      const favorited = await checkIfFavorited(id, user.id);
-      setIsFavorited(favorited);
-    } catch (error) {
-      console.error('Failed to check favorite status:', error);
-    }
-  };
-
-  const loadComments = async () => {
-    if (!id) return;
-    try {
-      const data = await getComments(id);
-      setComments(data);
-    } catch (error) {
-      console.error('Failed to load comments:', error);
-    }
-  };
 
   const handleToggleFavorite = async () => {
     if (!user) {
@@ -117,7 +120,7 @@ export default function ContentDetail() {
       }
     } catch (error) {
       // Rollback on error
-      console.error('Failed to toggle favorite:', error);
+      logger.error('Failed to toggle favorite', error);
       setIsFavorited(previousFavorited);
       setFavoriteCount(previousCount);
       toastError('操作失败，请重试');
@@ -138,7 +141,7 @@ export default function ContentDetail() {
       await loadComments();
       toastSuccess('评论发送成功！');
     } catch (error) {
-      console.error('Failed to submit comment:', error);
+      logger.error('Failed to submit comment', error);
       toastError('评论发送失败，请重试');
     } finally {
       setIsSubmittingComment(false);

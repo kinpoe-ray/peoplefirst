@@ -1,30 +1,32 @@
 import { useCallback } from 'react';
-import { useToast } from '../components/Toast';
+import { toastError, toastSuccess, toastWarning, toastInfo } from '../components/Toast';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('ErrorHandler');
 
 interface ErrorInfo {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
   action?: () => void;
 }
 
 export function useErrorHandler() {
-  const { addToast } = useToast();
+  const handleError = useCallback((error: unknown, context?: string) => {
+    logger.error(`Error in ${context || 'application'}`, error);
 
-  const handleError = useCallback((error: any, context?: string) => {
-    console.error(`Error in ${context || 'application'}:`, error);
-    
     let errorInfo: ErrorInfo;
-    
+
     if (typeof error === 'string') {
       errorInfo = {
         message: error,
       };
-    } else if (error?.message) {
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      const err = error as { message: string; code?: string; details?: unknown };
       errorInfo = {
-        message: error.message,
-        code: error.code,
-        details: error.details,
+        message: err.message,
+        code: err.code,
+        details: err.details,
       };
     } else {
       errorInfo = {
@@ -33,50 +35,30 @@ export function useErrorHandler() {
     }
 
     // 显示用户友好的错误消息
-    addToast({
-      type: 'error',
-      title: '操作失败',
-      message: errorInfo.message,
-      duration: 6000,
-    });
+    toastError(errorInfo.message);
 
     // 如果有上下文，可以在这里记录错误
     if (context) {
       // 可以发送到错误监控服务
-      console.group(`Error Context: ${context}`);
-      console.error('Error Details:', errorInfo);
-      console.groupEnd();
+      logger.group(`Error Context: ${context}`);
+      logger.error('Error Details', errorInfo);
+      logger.groupEnd();
     }
 
     return errorInfo;
-  }, [addToast]);
+  }, []);
 
-  const handleSuccess = useCallback((message: string, title: string = '操作成功') => {
-    addToast({
-      type: 'success',
-      title,
-      message,
-      duration: 3000,
-    });
-  }, [addToast]);
+  const handleSuccess = useCallback((message: string) => {
+    toastSuccess(message);
+  }, []);
 
-  const handleWarning = useCallback((message: string, title: string = '提醒') => {
-    addToast({
-      type: 'warning',
-      title,
-      message,
-      duration: 4000,
-    });
-  }, [addToast]);
+  const handleWarning = useCallback((message: string) => {
+    toastWarning(message);
+  }, []);
 
-  const handleInfo = useCallback((message: string, title: string = '信息') => {
-    addToast({
-      type: 'info',
-      title,
-      message,
-      duration: 3000,
-    });
-  }, [addToast]);
+  const handleInfo = useCallback((message: string) => {
+    toastInfo(message);
+  }, []);
 
   return {
     handleError,

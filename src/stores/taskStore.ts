@@ -2,23 +2,32 @@ import { create } from 'zustand';
 import { Task, UserTaskAttempt, TaskDifficulty, TaskSubmissionContent } from '../types/pathfinder';
 import * as tasksApi from '../api/tasks';
 
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  pageSize: number;
+}
+
 interface TaskState {
   tasks: Task[];
   currentTask: Task | null;
   currentAttempt: UserTaskAttempt | null;
   userAttempts: UserTaskAttempt[];
   selectedDifficulty: TaskDifficulty | 'all';
+  pagination: PaginationState;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchTasks: (difficulty?: TaskDifficulty) => Promise<void>;
+  fetchTasks: (difficulty?: TaskDifficulty, page?: number) => Promise<void>;
   fetchTaskById: (id: string) => Promise<void>;
   startTask: (taskId: string) => Promise<void>;
   updateAttemptStep: (attemptId: string, step: number, submission?: TaskSubmissionContent) => Promise<void>;
   completeTask: (attemptId: string, rating: number) => Promise<void>;
   fetchUserAttempts: () => Promise<void>;
   setSelectedDifficulty: (difficulty: TaskDifficulty | 'all') => void;
+  setCurrentPage: (page: number) => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -27,14 +36,29 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   currentAttempt: null,
   userAttempts: [],
   selectedDifficulty: 'all',
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    pageSize: 12,
+  },
   isLoading: false,
   error: null,
 
-  fetchTasks: async (difficulty) => {
+  fetchTasks: async (difficulty, page = 1) => {
     try {
       set({ isLoading: true, error: null });
-      const data = await tasksApi.getTasks(difficulty);
-      set({ tasks: data, isLoading: false });
+      const response = await tasksApi.getTasks(difficulty, page, 12);
+      set({
+        tasks: response.data,
+        pagination: {
+          currentPage: response.page,
+          totalPages: response.totalPages,
+          total: response.total,
+          pageSize: response.pageSize,
+        },
+        isLoading: false,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
       set({ error: errorMessage, isLoading: false });
@@ -102,7 +126,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   setSelectedDifficulty: (difficulty) => {
-    set({ selectedDifficulty: difficulty });
-    get().fetchTasks(difficulty === 'all' ? undefined : difficulty);
+    set({ selectedDifficulty: difficulty, pagination: { ...get().pagination, currentPage: 1 } });
+    get().fetchTasks(difficulty === 'all' ? undefined : difficulty, 1);
+  },
+
+  setCurrentPage: (page) => {
+    const { selectedDifficulty } = get();
+    get().fetchTasks(selectedDifficulty === 'all' ? undefined : selectedDifficulty, page);
   },
 }));

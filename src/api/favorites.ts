@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabase';
 import { Content, Story, Task } from '../types/pathfinder';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('FavoritesAPI');
 
 export interface Favorite {
   id: string;
@@ -25,7 +28,7 @@ export async function checkIfFavorited(contentId: string, userId: string): Promi
     .maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
-    console.error('Check favorite error:', error);
+    logger.error('Check favorite error', error);
   }
 
   return !!data;
@@ -44,7 +47,7 @@ export async function checkIfStoryFavorited(storyId: string, userId: string): Pr
     .maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
-    console.error('Check story favorite error:', error);
+    logger.error('Check story favorite error', error);
   }
 
   return !!data;
@@ -60,7 +63,7 @@ export async function addToFavorites(contentId: string): Promise<void> {
     throw new Error('Authentication required. Please log in to add favorites.');
   }
 
-  console.log('[addToFavorites] Starting with userId:', user.id, 'contentId:', contentId);
+  logger.debug('Starting addToFavorites', { userId: user.id, contentId });
 
   const { error } = await supabase
     .from('favorites')
@@ -71,11 +74,11 @@ export async function addToFavorites(contentId: string): Promise<void> {
     });
 
   if (error) {
-    console.error('[addToFavorites] Insert error:', error);
+    logger.error('Insert favorite error', error);
     throw error;
   }
 
-  console.log('[addToFavorites] Favorite inserted successfully');
+  logger.debug('Favorite inserted successfully');
 
   // 更新内容的收藏计数
   const { data: content, error: selectError } = await supabase
@@ -85,11 +88,11 @@ export async function addToFavorites(contentId: string): Promise<void> {
     .single();
 
   if (selectError) {
-    console.error('[addToFavorites] Select error:', selectError);
+    logger.error('Select content error', selectError);
     throw selectError;
   }
 
-  console.log('[addToFavorites] Current favorite_count:', content?.favorite_count);
+  logger.debug('Current favorite_count', { count: content?.favorite_count });
 
   if (content) {
     const { error: updateError } = await supabase
@@ -98,11 +101,11 @@ export async function addToFavorites(contentId: string): Promise<void> {
       .eq('id', contentId);
 
     if (updateError) {
-      console.error('[addToFavorites] Update error:', updateError);
+      logger.error('Update favorite count error', updateError);
       throw updateError;
     }
 
-    console.log('[addToFavorites] Favorite count updated successfully');
+    logger.debug('Favorite count updated successfully');
   }
 }
 

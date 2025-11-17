@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('Performance');
 
 // 防抖Hook
 export function useDebounce<T>(value: T, delay: number): T {
@@ -39,11 +42,17 @@ export function useThrottle<T>(value: T, delay: number): T {
 }
 
 // 缓存Hook
-export function useCache<T>(key: string, fetcher: () => Promise<T>, deps: any[] = []) {
+export function useCache<T>(key: string, fetcher: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const cacheRef = useRef<Map<string, { data: T; timestamp: number }>>(new Map());
+  const depsRef = useRef(deps);
+
+  // Update deps ref when deps change
+  useEffect(() => {
+    depsRef.current = deps;
+  }, [deps]);
 
   const fetchData = useCallback(async () => {
     const cached = cacheRef.current.get(key);
@@ -60,7 +69,7 @@ export function useCache<T>(key: string, fetcher: () => Promise<T>, deps: any[] 
       setLoading(true);
       setError(null);
       const result = await fetcher();
-      
+
       cacheRef.current.set(key, { data: result, timestamp: now });
       setData(result);
     } catch (err) {
@@ -68,11 +77,12 @@ export function useCache<T>(key: string, fetcher: () => Promise<T>, deps: any[] 
     } finally {
       setLoading(false);
     }
-  }, [key, fetcher, ...deps]);
+  }, [key, fetcher]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData, ...deps]);
 
   const invalidateCache = useCallback(() => {
     cacheRef.current.delete(key);
@@ -88,13 +98,13 @@ export function useCache<T>(key: string, fetcher: () => Promise<T>, deps: any[] 
 
 // 智能预加载Hook
 export function usePrefetch() {
-  const prefetchRef = useRef<Map<string, Promise<any>>>(new Map());
+  const prefetchRef = useRef<Map<string, Promise<unknown>>>(new Map());
 
-  const prefetch = useCallback((key: string, fetcher: () => Promise<any>) => {
+  const prefetch = useCallback((key: string, fetcher: () => Promise<unknown>) => {
     if (!prefetchRef.current.has(key)) {
       const promise = fetcher();
       prefetchRef.current.set(key, promise);
-      
+
       promise.finally(() => {
         // 完成后可以从预加载缓存中移除
         setTimeout(() => {
@@ -140,7 +150,7 @@ export function useResourcePreloader() {
         await loadScript(resource.src);
       }
     } catch (error) {
-      console.warn(`Failed to preload ${resource.type}:`, resource.src, error);
+      logger.warn(`Failed to preload ${resource.type}`, { src: resource.src, error });
     }
   }, [loadImage, loadScript]);
 
