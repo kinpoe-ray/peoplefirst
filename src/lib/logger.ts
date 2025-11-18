@@ -51,13 +51,13 @@ const SENSITIVE_PATTERNS = [
   /address/i,
 ];
 
-// Environment detection
-const isDevelopment = import.meta.env?.DEV ?? process.env.NODE_ENV !== 'production';
-const isProduction = import.meta.env?.PROD ?? process.env.NODE_ENV === 'production';
+// Environment detection (Vite-compatible, no process.env fallback)
+const isDevelopment = import.meta.env?.DEV ?? true;
+const isProduction = import.meta.env?.PROD ?? false;
 
 // Parse log level from environment variable
 function getLogLevelFromEnv(): LogLevel {
-  const envLevel = import.meta.env?.VITE_LOG_LEVEL ?? process.env.VITE_LOG_LEVEL;
+  const envLevel = import.meta.env?.VITE_LOG_LEVEL;
 
   if (envLevel) {
     const level = envLevel.toUpperCase();

@@ -174,6 +174,7 @@ export default defineConfig({
       '.ngrok-free.app',
       '.ngrok.app',
       '.ngrok.io',
+      '.trycloudflare.com',  // Cloudflare Tunnel
     ],
   },
 })

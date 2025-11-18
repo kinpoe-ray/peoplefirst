@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle, Flame } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 
 export default function SignUp() {
@@ -100,7 +100,7 @@ export default function SignUp() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">注册成功！</h2>
             <p className="text-dark-text-secondary mb-6">
-              欢迎加入PathFinder，即将跳转到首页...
+              欢迎加入PeopleFirst，即将跳转到首页...
             </p>
             <div className="w-8 h-8 mx-auto border-4 border-pathBlue border-t-transparent rounded-full animate-spin" />
           </div>
@@ -114,12 +114,13 @@ export default function SignUp() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pathBlue to-warmOrange flex items-center justify-center">
-              <span className="text-white font-bold text-xl">P</span>
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-ember to-violet flex items-center justify-center shadow-glow-ember group-hover:scale-110 transition-transform duration-300">
+              <Flame className="w-6 h-6 text-white" />
             </div>
+            <span className="text-2xl font-semibold text-white group-hover:text-ember transition-colors duration-300">PeopleFirst</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white mt-4 mb-2">创建账号</h1>
+          <h1 className="text-3xl font-bold text-white mt-6 mb-2">创建账号</h1>
           <p className="text-dark-text-secondary">开始探索你的职业可能性</p>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, ArrowRight, AlertCircle, CheckCircle, Flame } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function ForgotPassword() {
@@ -47,12 +47,13 @@ export default function ForgotPassword() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pathBlue to-warmOrange flex items-center justify-center">
-              <span className="text-white font-bold text-xl">P</span>
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-ember to-violet flex items-center justify-center shadow-glow-ember group-hover:scale-110 transition-transform duration-300">
+              <Flame className="w-6 h-6 text-white" />
             </div>
+            <span className="text-2xl font-semibold text-white group-hover:text-ember transition-colors duration-300">PeopleFirst</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white mt-4 mb-2">重置密码</h1>
+          <h1 className="text-3xl font-bold text-white mt-6 mb-2">重置密码</h1>
           <p className="text-dark-text-secondary">输入您的邮箱地址，我们将发送重置链接</p>
         </div>
 

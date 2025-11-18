@@ -1,3 +1,5 @@
+import { Flame } from 'lucide-react';
+
 export default function Footer() {
   return (
     <footer className="bg-dark-surface border-t border-dark-border mt-20">
@@ -6,10 +8,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pathBlue to-warmOrange flex items-center justify-center">
-                <span className="text-white font-bold text-sm">P</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-ember to-violet flex items-center justify-center">
+                <Flame className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-semibold text-white">PathFinder</span>
+              <span className="text-lg font-semibold text-white">PeopleFirst</span>
             </div>
             <p className="text-sm text-dark-text-tertiary">
               少一些规划，多一些尝试
@@ -51,7 +53,7 @@ export default function Footer() {
 
         <div className="mt-12 pt-8 border-t border-dark-border">
           <p className="text-xs text-dark-text-tertiary text-center">
-            © 2025 PathFinder. All rights reserved.
+            © 2025 PeopleFirst. All rights reserved.
           </p>
         </div>
       </div>
